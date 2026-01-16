@@ -134,9 +134,7 @@ export default function Footer() {
                     <div className="flex items-center gap-8">
                         <Link href="#" className="text-xs font-bold text-zinc-400 hover:text-black transition-colors">Privacy Policy</Link>
                         <Link href="#" className="text-xs font-bold text-zinc-400 hover:text-black transition-colors">Terms of Use</Link>
-                        <p className="flex items-center gap-2 text-xs font-bold text-zinc-400">
-                            Built with <Heart className="size-3 text-rose-500 fill-rose-500 animate-pulse" /> by Antigravity
-                        </p>
+
                     </div>
                 </div>
             </div>
