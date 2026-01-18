@@ -3,8 +3,32 @@
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError("");
+        setIsLoading(true);
+
+        // Mock delay for realism
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        if (email === "test@example.com" && password === "password123") {
+            router.push("/");
+        } else {
+            setError("Invalid email or password");
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-[80vh] flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop')] bg-cover bg-center">
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
@@ -17,14 +41,23 @@ export default function SignIn() {
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
                     <p className="text-muted-foreground">Sign in to your account to continue</p>
+                    <p className="text-xs text-primary mt-2">Mock: test@example.com / password123</p>
                 </div>
 
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                    {error && (
+                        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+                            {error}
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <label className="text-sm font-medium ml-1">Email</label>
                         <input
                             type="email"
                             placeholder="hello@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
                             className="w-full h-12 px-4 rounded-xl border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                         />
                     </div>
@@ -36,11 +69,21 @@ export default function SignIn() {
                         <input
                             type="password"
                             placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
                             className="w-full h-12 px-4 rounded-xl border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                         />
                     </div>
 
-                    <Button size="lg" className="w-full text-lg rounded-xl h-12">Sign In</Button>
+                    <Button
+                        size="lg"
+                        className="w-full text-lg rounded-xl h-12"
+                        type="submit"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Signing In..." : "Sign In"}
+                    </Button>
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
