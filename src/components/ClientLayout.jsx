@@ -14,7 +14,7 @@ export default function ClientLayout({ children }) {
     return (
         <CartProvider>
             <SmoothScroll>
-                {!isAuthPage && <TopBar />}
+                {/* {!isAuthPage && <TopBar />} */}
                 {!isAuthPage && <Header />}
                 <main className={`flex-1 ${!isAuthPage ? "pt-24 pb-12" : "min-h-screen"}`}>
                     {children}
