@@ -21,7 +21,7 @@ export default function SignIn() {
         // Mock delay for realism
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        if (email === "test@gmail.com" && password === "password123") {
+        if (email === "test@gmail.com" && password === "123") {
             router.push("/");
         } else {
             setError("Invalid email or password");

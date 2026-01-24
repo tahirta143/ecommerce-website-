@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, Menu, Search, X } from "lucide-react";
+import { ShoppingBag, Menu, Search, X, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+
 export default function Header() {
     const [scrolled, setScrolled] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -33,153 +34,207 @@ export default function Header() {
         }
     };
 
+    const navItems = [
+        { name: "Home", href: "/" },
+        { name: "Shop", href: "/shop" },
+        { name: "Categories", href: "/categories" },
+        { name: "About", href: "/about" },
+    ];
+
     return (
         <header
             className={cn(
-                "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-                scrolled
-                    ? "glass border-b border-white/10 py-3"
-                    : "bg-transparent py-5"
+                "fixed top-0 left-0 right-0 z-40 transition-all duration-500 ease-in-out font-sans",
+                scrolled || mobileMenuOpen
+                    ? "bg-white/80 backdrop-blur-md border-b border-black/5 py-4 shadow-sm"
+                    : "bg-transparent py-6 border-transparent"
             )}
         >
-            <div className="container mx-auto px-4 flex items-center justify-between">
-                {/* Logo */}
-                <Link href="/" className="flex items-center gap-2 group">
-                    <div className="size-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                        E
-                    </div>
-                    <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70 group-hover:to-primary transition-all">
-                        LuxeMarket
-                    </span>
-                </Link>
+            <div className="container mx-auto px-4">
+                <div className="flex items-center justify-between">
 
-                {/* Desktop Nav */}
-                <nav className="hidden md:flex items-center gap-8">
-                    {[
-                        { name: "Home", href: "/" },
-                        { name: "Shop", href: "/shop" },
-                        { name: "Categories", href: "/categories" },
-                        { name: "About", href: "/about" },
-                    ].map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.name}
-                                href={item.href}
-                                className={cn(
-                                    "text-sm font-medium transition-colors relative group",
-                                    isActive ? "text-primary" : "text-muted-foreground hover:text-primary"
-                                )}
-                            >
-                                {item.name}
-                                <span className={cn(
-                                    "absolute -bottom-1 left-0 h-0.5 bg-primary transition-all",
-                                    isActive ? "w-full" : "w-0 group-hover:w-full"
-                                )}></span>
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                {/* Actions */}
-                <div className="flex items-center gap-3">
-                    {/* Search Toggle */}
-                    <AnimatePresence>
-                        {searchOpen ? (
-                            <motion.form
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                onSubmit={handleSearch}
-                                className="relative flex-1 md:flex-initial"
-                            >
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    placeholder="Search..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full md:w-[200px] h-10 pl-3 pr-8 rounded-full bg-secondary/50 border border-transparent focus:border-primary focus:bg-background outline-none text-sm transition-all"
-                                />
-                                <button type="button" onClick={() => setSearchOpen(false)} className="absolute right-2 top-2.5 text-muted-foreground hover:text-foreground">
-                                    <X className="size-4" />
-                                </button>
-                            </motion.form>
-                        ) : (
-                            <button onClick={() => setSearchOpen(true)} className="p-2 rounded-full hover:bg-secondary/80 text-muted-foreground hover:text-primary transition-colors">
-                                <Search className="size-5" />
-                            </button>
-                        )}
-                    </AnimatePresence>
-
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative group"
-                        onClick={() => router.push('/cart')}
-                    >
-                        <ShoppingBag className="size-5 group-hover:text-primary transition-colors" />
-                        {isMounted && totalItems > 0 && (
-                            <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-sm ring-2 ring-background animate-in zoom-in">
-                                {totalItems}
+                    {/* Logo Section */}
+                    <div className="flex-1 md:flex-none">
+                        <Link href="/" className="flex items-center gap-2 group w-max">
+                            <div className="relative">
+                                <div className="size-10 rounded-xl bg-black text-white flex items-center justify-center font-bold text-xl shadow-xl group-hover:scale-105 transition-transform duration-300">
+                                    L
+                                </div>
+                                <div className="absolute -inset-1 rounded-xl bg-gradient-to-tr from-primary/30 to-violet-500/30 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+                            </div>
+                            <span className={cn(
+                                "text-2xl font-black tracking-tighter transition-colors duration-300 hidden sm:block",
+                                scrolled ? "text-black" : "text-black md:text-white mix-blend-difference"
+                            )}>
+                                Luxe<span className="font-light">Market</span>.
                             </span>
-                        )}
-                    </Button>
+                        </Link>
+                    </div>
 
-                    <Button
-                        className="hidden md:inline-flex rounded-full"
-                        size="sm"
-                        onClick={() => router.push('/signin')}
-                    >
-                        Sign In
-                    </Button>
+                    {/* Desktop Navigation - Centered */}
+                    <nav className="hidden md:flex items-center justify-center gap-1">
+                        <div className={cn(
+                            "flex items-center gap-1 p-1.5 rounded-full transition-all duration-300",
+                            scrolled ? "bg-secondary/50" : "bg-white/10 backdrop-blur-md border border-white/20"
+                        )}>
+                            {navItems.map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        className={cn(
+                                            "relative px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300",
+                                            isActive
+                                                ? "bg-white text-black shadow-md"
+                                                : scrolled ? "text-muted-foreground hover:text-black hover:bg-white/50" : "text-white/80 hover:text-white hover:bg-white/20"
+                                        )}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </nav>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="md:hidden"
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    >
-                        {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-                    </Button>
+                    {/* Actions Section */}
+                    <div className="flex items-center justify-end gap-2 flex-1 md:flex-none">
+
+                        {/* Search Toggle */}
+                        <AnimatePresence mode="wait">
+                            {searchOpen ? (
+                                <motion.form
+                                    initial={{ opacity: 0, width: 0 }}
+                                    animate={{ opacity: 1, width: "240px" }}
+                                    exit={{ opacity: 0, width: 0 }}
+                                    onSubmit={handleSearch}
+                                    className="relative hidden md:block overflow-hidden"
+                                >
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full h-11 pl-4 pr-10 rounded-full bg-secondary/80 border-0 focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchOpen(false)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-black/5"
+                                    >
+                                        <X className="size-4 text-muted-foreground" />
+                                    </button>
+                                </motion.form>
+                            ) : (
+                                <Button
+                                    onClick={() => setSearchOpen(true)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn("rounded-full hover:bg-black/5 transition-colors hidden md:flex", scrolled ? "text-foreground" : "text-white mix-blend-difference")}
+                                >
+                                    <Search className="size-5" />
+                                </Button>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Cart */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("relative rounded-full hover:bg-black/5 transition-colors", scrolled ? "text-foreground" : "text-white mix-blend-difference")}
+                            onClick={() => router.push('/cart')}
+                        >
+                            <ShoppingBag className="size-5" />
+                            {isMounted && totalItems > 0 && (
+                                <span className="absolute top-1.5 right-1.5 flex size-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full size-2.5 bg-primary"></span>
+                                </span>
+                            )}
+                        </Button>
+
+                        {/* Sign In (Desktop) */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("hidden md:flex rounded-full hover:bg-black/5", scrolled ? "text-foreground" : "text-white mix-blend-difference")}
+                            onClick={() => router.push('/signin')}
+                        >
+                            <User className="size-5" />
+                        </Button>
+
+
+                        {/* Mobile Toggle */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("md:hidden rounded-full", scrolled ? "text-foreground" : "text-white mix-blend-difference")}
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        >
+                            {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* Mobile Menu Overlay */}
+            {/* Mobile Menu Overlay - Full Screen Premium Feel */}
             <AnimatePresence>
                 {mobileMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="md:hidden border-t border-white/10 bg-background/95 backdrop-blur-xl overflow-hidden"
+                        initial={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
+                        animate={{ opacity: 1, clipPath: "circle(150% at 100% 0%)" }}
+                        exit={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
+                        transition={{ duration: 0.5, ease: [0.32, 0, 0.67, 0] }}
+                        className="fixed inset-0 top-0 pt-24 bg-background z-40 md:hidden flex flex-col"
                     >
-                        <div className="container mx-auto px-4 py-8 flex flex-col gap-6">
-                            {[
-                                { name: "Home", href: "/" },
-                                { name: "Shop", href: "/shop" },
-                                { name: "Categories", href: "/categories" },
-                                { name: "About", href: "/about" },
-                            ].map((item) => (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={cn(
-                                        "text-2xl font-bold transition-colors",
-                                        pathname === item.href ? "text-primary" : "text-foreground"
-                                    )}
+                        <div className="container mx-auto px-6 py-8 flex flex-col gap-8 h-full">
+
+                            {/* Search Mobile */}
+                            <form onSubmit={handleSearch} className="relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground size-5" />
+                                <input
+                                    type="text"
+                                    placeholder="What are you looking for?"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full h-14 pl-12 pr-4 rounded-2xl bg-secondary border-transparent focus:border-primary focus:bg-background transition-all outline-none text-lg"
+                                />
+                            </form>
+
+                            <nav className="flex flex-col gap-2">
+                                {navItems.map((item, i) => (
+                                    <motion.div
+                                        key={item.name}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.1 + (i * 0.05) }}
+                                    >
+                                        <Link
+                                            href={item.href}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className={cn(
+                                                "block text-4xl font-black tracking-tight py-2 transition-colors hover:text-primary",
+                                                pathname === item.href ? "text-black" : "text-muted-foreground"
+                                            )}
+                                        >
+                                            {item.name}
+                                        </Link>
+                                    </motion.div>
+                                ))}
+                            </nav>
+
+                            <div className="mt-auto pb-12 border-t pt-8 flex flex-col gap-4">
+                                <Button
+                                    className="w-full h-14 rounded-full text-lg font-bold"
+                                    onClick={() => { router.push('/signin'); setMobileMenuOpen(false); }}
                                 >
-                                    {item.name}
-                                </Link>
-                            ))}
-                            <Link
-                                href="/signin"
-                                onClick={() => setMobileMenuOpen(false)}
-                                className="mt-4"
-                            >
-                                <Button className="w-full h-14 rounded-2xl text-lg">Sign In</Button>
-                            </Link>
+                                    Sign In / Register
+                                </Button>
+                                <p className="text-center text-muted-foreground text-sm">
+                                    © 2024 LuxeMarket Inc.
+                                </p>
+                            </div>
                         </div>
                     </motion.div>
                 )}
