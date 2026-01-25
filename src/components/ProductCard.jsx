@@ -123,7 +123,7 @@ export function ProductCard({ product }) {
             </Link>
 
             {/* Content */}
-            <div className="p-5">
+            <div className="p-3 md:p-5">
                 <Link href={`/product/${product.id}`}>
                     <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-primary transition-colors cursor-pointer">{product.name}</h3>
                 </Link>

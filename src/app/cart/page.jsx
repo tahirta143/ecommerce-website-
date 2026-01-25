@@ -11,19 +11,66 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function CartPage() {
     const { cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
     const [showReceipt, setShowReceipt] = useState(false);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [selectedMethod, setSelectedMethod] = useState("bank");
+    const [paymentDetails, setPaymentDetails] = useState({
+        senderName: "",
+        transactionId: "",
+        senderNumber: "",
+        accountNumber: ""
+    });
 
-    const handleCheckout = () => {
+    const handleCheckoutInit = () => {
         if (cartItems.length > 0) {
-            setShowReceipt(true);
+            setIsCheckoutOpen(true);
         }
+    };
+
+    const handleConfirmPayment = (e) => {
+        e.preventDefault();
+        // Here you would typically validate the transaction ID with a backend
+        setIsCheckoutOpen(false);
+        setShowReceipt(true);
     };
 
     const closeReceipt = () => {
         setShowReceipt(false);
         clearCart();
+        setPaymentDetails({ senderName: "", transactionId: "", senderNumber: "", accountNumber: "" });
     };
 
-    if (cartItems.length === 0 && !showReceipt) {
+    const paymentMethods = [
+        { id: "bank", name: "Bank Transfer", icon: "🏦", color: "bg-blue-50 text-blue-600 border-blue-100" },
+        { id: "easypaisa", name: "Easypaisa", icon: "📱", color: "bg-green-50 text-green-600 border-green-100" },
+        { id: "jazzcash", name: "JazzCash", icon: "🔴", color: "bg-red-50 text-red-600 border-red-100" },
+    ];
+
+    const getAccountDetails = () => {
+        switch (selectedMethod) {
+            case "bank":
+                return {
+                    title: "Bank Al Habib",
+                    account: "1234 5678 9012 3456",
+                    name: "LuxeMarket Pvt Ltd"
+                };
+            case "easypaisa":
+                return {
+                    title: "Easypaisa Account",
+                    account: "0300 1234567",
+                    name: "LuxeMarket Merchant"
+                };
+            case "jazzcash":
+                return {
+                    title: "JazzCash Account",
+                    account: "0300 9876543",
+                    name: "LuxeMarket Merchant"
+                };
+            default:
+                return {};
+        }
+    };
+
+    if (cartItems.length === 0 && !showReceipt && !isCheckoutOpen) {
         return (
             <div className="container mx-auto px-4 py-24 text-center space-y-6">
                 <motion.div
@@ -112,7 +159,7 @@ export default function CartPage() {
                             </div>
                         </div>
                         <Button
-                            onClick={handleCheckout}
+                            onClick={handleCheckoutInit}
                             className="w-full text-lg h-16 rounded-[1.5rem] bg-black text-white hover:bg-zinc-800 shadow-xl shadow-zinc-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                         >
                             Proceed to Checkout <ArrowRight className="size-5" />
@@ -127,7 +174,144 @@ export default function CartPage() {
                 </div>
             </div>
 
-            {/* Receipt Modal */}
+            {/* Payment Modal */}
+            <AnimatePresence>
+                {isCheckoutOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]"
+                        >
+                            <button
+                                onClick={() => setIsCheckoutOpen(false)}
+                                className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-100 transition-colors z-10"
+                            >
+                                <X className="size-6 text-zinc-500" />
+                            </button>
+
+                            <div className="p-6 md:p-8 border-b shrink-0">
+                                <h2 className="text-xl md:text-2xl font-black">Select Payment Method</h2>
+                                <p className="text-sm md:text-base text-zinc-500">Choose how you want to pay</p>
+                            </div>
+
+                            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
+                                {/* Methods Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                    {paymentMethods.map((method) => (
+                                        <button
+                                            key={method.id}
+                                            onClick={() => setSelectedMethod(method.id)}
+                                            className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedMethod === method.id
+                                                ? "border-black bg-zinc-50"
+                                                : "border-zinc-100 hover:border-zinc-200 hover:bg-white"
+                                                }`}
+                                        >
+                                            <div className={`size-10 rounded-full flex items-center justify-center text-xl ${method.color} bg-opacity-20`}>
+                                                {method.icon}
+                                            </div>
+                                            <span className={`font-bold text-sm ${selectedMethod === method.id ? "text-black" : "text-zinc-500"}`}>
+                                                {method.name}
+                                            </span>
+                                            {selectedMethod === method.id && (
+                                                <div className="bg-black text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Selected</div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Account Details Card */}
+                                <div className="bg-zinc-50 p-5 rounded-3xl border border-zinc-100 mb-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Send Money To</p>
+                                            <h3 className="text-lg font-black text-zinc-900">{getAccountDetails().title}</h3>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Amount</p>
+                                            <h3 className="text-lg font-black text-primary">${totalPrice.toFixed(2)}</h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="bg-white p-3 rounded-2xl border border-zinc-100 flex justify-between items-center text-sm">
+                                            <span className="text-zinc-500 font-medium">Account Number</span>
+                                            <span className="font-mono font-bold select-all">{getAccountDetails().account}</span>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-2xl border border-zinc-100 flex justify-between items-center text-sm">
+                                            <span className="text-zinc-500 font-medium">Account Name</span>
+                                            <span className="font-bold">{getAccountDetails().name}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Input Inputs (Visual only, state handled in footer or shared) */}
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-base">Enter Transaction Details</h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-zinc-700 ml-1">Sender Name</label>
+                                            <input
+                                                required
+                                                type="text"
+                                                placeholder="e.g. John Doe"
+                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
+                                                value={paymentDetails.senderName}
+                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, senderName: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-zinc-700 ml-1">
+                                                {selectedMethod === 'bank' ? 'Sender Account No' : 'Sender Mobile No'}
+                                            </label>
+                                            <input
+                                                required
+                                                type="text"
+                                                placeholder={selectedMethod === 'bank' ? "e.g. 1234..." : "e.g. 0300..."}
+                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
+                                                value={paymentDetails.accountNumber}
+                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, accountNumber: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-xs font-bold text-zinc-700 ml-1">
+                                                {selectedMethod === 'bank' ? 'Transaction ID' : 'TID / Trx ID'}
+                                            </label>
+                                            <input
+                                                required
+                                                type="text"
+                                                placeholder="e.g. 82736182"
+                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
+                                                value={paymentDetails.transactionId}
+                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, transactionId: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Fixed Footer */}
+                            <div className="p-6 md:p-8 border-t bg-white shrink-0">
+                                <Button
+                                    onClick={handleConfirmPayment}
+                                    disabled={!paymentDetails.senderName || !paymentDetails.transactionId || !paymentDetails.accountNumber}
+                                    className="w-full h-14 rounded-2xl bg-black text-white hover:bg-zinc-800 text-lg font-bold shadow-xl active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Verify & Confirm Payment
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Receipt Modal (Existing) */}
             <AnimatePresence>
                 {showReceipt && (
                     <motion.div

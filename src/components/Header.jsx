@@ -180,65 +180,87 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Mobile Menu Overlay - Full Screen Premium Feel */}
+            {/* Mobile Menu Overlay - Side Drawer */}
             <AnimatePresence>
                 {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
-                        animate={{ opacity: 1, clipPath: "circle(150% at 100% 0%)" }}
-                        exit={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
-                        transition={{ duration: 0.5, ease: [0.32, 0, 0.67, 0] }}
-                        className="fixed inset-0 top-0 pt-24 bg-white z-40 md:hidden flex flex-col"
-                    >
-                        <div className="container mx-auto px-6 py-8 flex flex-col gap-8 h-full">
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+                        />
 
-                            {/* Search Mobile */}
-                            <form onSubmit={handleSearch} className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground size-5" />
-                                <input
-                                    type="text"
-                                    placeholder="What are you looking for?"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full h-14 pl-12 pr-4 rounded-2xl bg-secondary border-transparent focus:border-primary focus:bg-background transition-all outline-none text-lg"
-                                />
-                            </form>
-
-                            <nav className="flex flex-col gap-2">
-                                {navItems.map((item, i) => (
-                                    <motion.div
-                                        key={item.name}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: 0.1 + (i * 0.05) }}
+                        {/* Drawer */}
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="fixed inset-y-0 right-0 w-[80%] max-w-sm bg-white z-50 md:hidden flex flex-col shadow-2xl"
+                        >
+                            <div className="flex flex-col h-full">
+                                {/* Drawer Header */}
+                                <div className="p-6 border-b flex items-center justify-between">
+                                    <span className="text-xl font-bold">Menu</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="rounded-full hover:bg-black/5"
                                     >
-                                        <Link
-                                            href={item.href}
-                                            onClick={() => setMobileMenuOpen(false)}
-                                            className={cn(
-                                                "block text-4xl font-black tracking-tight py-2 transition-colors hover:text-primary",
-                                                pathname === item.href ? "text-black" : "text-muted-foreground"
-                                            )}
-                                        >
-                                            {item.name}
-                                        </Link>
-                                    </motion.div>
-                                ))}
-                            </nav>
+                                        <X className="size-6" />
+                                    </Button>
+                                </div>
 
-                            <div className="mt-auto pb-12 border-t pt-8 flex flex-col gap-4">
-                                <Button
-                                    className="w-full h-14 rounded-full text-lg font-bold"
-                                    onClick={() => { router.push('/signin'); setMobileMenuOpen(false); }}
-                                >
-                                    Sign In / Register
-                                </Button>
-                                <p className="text-center text-muted-foreground text-sm">
-                                    © 2024 LuxeMarket Inc.
-                                </p>
+                                {/* Drawer Content */}
+                                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+                                    {/* Search Mobile */}
+                                    <form onSubmit={handleSearch} className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full h-11 pl-10 pr-4 rounded-xl bg-secondary border-transparent focus:border-primary focus:bg-background transition-all outline-none text-sm"
+                                        />
+                                    </form>
+
+                                    <nav className="flex flex-col gap-1">
+                                        {navItems.map((item, i) => (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={cn(
+                                                    "block text-lg font-medium py-3 px-4 rounded-xl transition-colors hover:bg-secondary",
+                                                    pathname === item.href ? "text-primary bg-secondary/50" : "text-foreground"
+                                                )}
+                                            >
+                                                {item.name}
+                                            </Link>
+                                        ))}
+                                    </nav>
+                                </div>
+
+                                {/* Drawer Footer */}
+                                <div className="p-6 border-t mt-auto">
+                                    <Button
+                                        className="w-full rounded-xl font-bold"
+                                        onClick={() => { router.push('/signin'); setMobileMenuOpen(false); }}
+                                    >
+                                        Sign In / Register
+                                    </Button>
+                                    <p className="text-center text-muted-foreground text-xs mt-4">
+                                        © 2024 LuxeMarket Inc.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </header>
