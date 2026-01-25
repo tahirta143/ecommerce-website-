@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, CheckCircle2, Package, X } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, X } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,66 +11,36 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function CartPage() {
     const { cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
     const [showReceipt, setShowReceipt] = useState(false);
-    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [selectedMethod, setSelectedMethod] = useState("bank");
-    const [paymentDetails, setPaymentDetails] = useState({
-        senderName: "",
-        transactionId: "",
-        senderNumber: "",
-        accountNumber: ""
-    });
 
     const handleCheckoutInit = () => {
         if (cartItems.length > 0) {
-            setIsCheckoutOpen(true);
+            setShowReceipt(true);
         }
     };
 
-    const handleConfirmPayment = (e) => {
-        e.preventDefault();
-        // Here you would typically validate the transaction ID with a backend
-        setIsCheckoutOpen(false);
-        setShowReceipt(true);
+    const handleWhatsAppOrder = () => {
+        let message = "Hi, I would like to place an order:\n\n";
+
+        cartItems.forEach(item => {
+            message += `- ${item.name} (x${item.quantity}): $${(item.price * item.quantity).toFixed(2)}\n`;
+        });
+
+        message += `\nTotal Amount: $${totalPrice.toFixed(2)}`;
+        message += `\n\nPlease confirm my order.`;
+
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/923254828492?text=${encodedMessage}`, '_blank');
+
+        // Optional: clear cart after ordering? keeping it for now in case user comes back
+        // clearCart(); 
+        // setShowReceipt(false);
     };
 
     const closeReceipt = () => {
         setShowReceipt(false);
-        clearCart();
-        setPaymentDetails({ senderName: "", transactionId: "", senderNumber: "", accountNumber: "" });
     };
 
-    const paymentMethods = [
-        { id: "bank", name: "Bank Transfer", icon: "🏦", color: "bg-blue-50 text-blue-600 border-blue-100" },
-        { id: "easypaisa", name: "Easypaisa", icon: "📱", color: "bg-green-50 text-green-600 border-green-100" },
-        { id: "jazzcash", name: "JazzCash", icon: "🔴", color: "bg-red-50 text-red-600 border-red-100" },
-    ];
-
-    const getAccountDetails = () => {
-        switch (selectedMethod) {
-            case "bank":
-                return {
-                    title: "Bank Al Habib",
-                    account: "1234 5678 9012 3456",
-                    name: "LuxeMarket Pvt Ltd"
-                };
-            case "easypaisa":
-                return {
-                    title: "Easypaisa Account",
-                    account: "0300 1234567",
-                    name: "LuxeMarket Merchant"
-                };
-            case "jazzcash":
-                return {
-                    title: "JazzCash Account",
-                    account: "0300 9876543",
-                    name: "LuxeMarket Merchant"
-                };
-            default:
-                return {};
-        }
-    };
-
-    if (cartItems.length === 0 && !showReceipt && !isCheckoutOpen) {
+    if (cartItems.length === 0 && !showReceipt) {
         return (
             <div className="container mx-auto px-4 py-24 text-center space-y-6">
                 <motion.div
@@ -174,144 +144,7 @@ export default function CartPage() {
                 </div>
             </div>
 
-            {/* Payment Modal */}
-            <AnimatePresence>
-                {isCheckoutOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl relative flex flex-col max-h-[85vh]"
-                        >
-                            <button
-                                onClick={() => setIsCheckoutOpen(false)}
-                                className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-100 transition-colors z-10"
-                            >
-                                <X className="size-6 text-zinc-500" />
-                            </button>
-
-                            <div className="p-6 md:p-8 border-b shrink-0">
-                                <h2 className="text-xl md:text-2xl font-black">Select Payment Method</h2>
-                                <p className="text-sm md:text-base text-zinc-500">Choose how you want to pay</p>
-                            </div>
-
-                            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
-                                {/* Methods Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                                    {paymentMethods.map((method) => (
-                                        <button
-                                            key={method.id}
-                                            onClick={() => setSelectedMethod(method.id)}
-                                            className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${selectedMethod === method.id
-                                                ? "border-black bg-zinc-50"
-                                                : "border-zinc-100 hover:border-zinc-200 hover:bg-white"
-                                                }`}
-                                        >
-                                            <div className={`size-10 rounded-full flex items-center justify-center text-xl ${method.color} bg-opacity-20`}>
-                                                {method.icon}
-                                            </div>
-                                            <span className={`font-bold text-sm ${selectedMethod === method.id ? "text-black" : "text-zinc-500"}`}>
-                                                {method.name}
-                                            </span>
-                                            {selectedMethod === method.id && (
-                                                <div className="bg-black text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Selected</div>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Account Details Card */}
-                                <div className="bg-zinc-50 p-5 rounded-3xl border border-zinc-100 mb-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Send Money To</p>
-                                            <h3 className="text-lg font-black text-zinc-900">{getAccountDetails().title}</h3>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Amount</p>
-                                            <h3 className="text-lg font-black text-primary">${totalPrice.toFixed(2)}</h3>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <div className="bg-white p-3 rounded-2xl border border-zinc-100 flex justify-between items-center text-sm">
-                                            <span className="text-zinc-500 font-medium">Account Number</span>
-                                            <span className="font-mono font-bold select-all">{getAccountDetails().account}</span>
-                                        </div>
-                                        <div className="bg-white p-3 rounded-2xl border border-zinc-100 flex justify-between items-center text-sm">
-                                            <span className="text-zinc-500 font-medium">Account Name</span>
-                                            <span className="font-bold">{getAccountDetails().name}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Input Inputs (Visual only, state handled in footer or shared) */}
-                                <div className="space-y-4">
-                                    <h3 className="font-bold text-base">Enter Transaction Details</h3>
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-700 ml-1">Sender Name</label>
-                                            <input
-                                                required
-                                                type="text"
-                                                placeholder="e.g. John Doe"
-                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
-                                                value={paymentDetails.senderName}
-                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, senderName: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-zinc-700 ml-1">
-                                                {selectedMethod === 'bank' ? 'Sender Account No' : 'Sender Mobile No'}
-                                            </label>
-                                            <input
-                                                required
-                                                type="text"
-                                                placeholder={selectedMethod === 'bank' ? "e.g. 1234..." : "e.g. 0300..."}
-                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
-                                                value={paymentDetails.accountNumber}
-                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, accountNumber: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5 md:col-span-2">
-                                            <label className="text-xs font-bold text-zinc-700 ml-1">
-                                                {selectedMethod === 'bank' ? 'Transaction ID' : 'TID / Trx ID'}
-                                            </label>
-                                            <input
-                                                required
-                                                type="text"
-                                                placeholder="e.g. 82736182"
-                                                className="w-full h-10 rounded-xl border-zinc-200 focus:border-black focus:ring-0 text-sm"
-                                                value={paymentDetails.transactionId}
-                                                onChange={(e) => setPaymentDetails({ ...paymentDetails, transactionId: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Fixed Footer */}
-                            <div className="p-6 md:p-8 border-t bg-white shrink-0">
-                                <Button
-                                    onClick={handleConfirmPayment}
-                                    disabled={!paymentDetails.senderName || !paymentDetails.transactionId || !paymentDetails.accountNumber}
-                                    className="w-full h-14 rounded-2xl bg-black text-white hover:bg-zinc-800 text-lg font-bold shadow-xl active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Verify & Confirm Payment
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Receipt Modal (Existing) */}
+            {/* Receipt Modal */}
             <AnimatePresence>
                 {showReceipt && (
                     <motion.div
@@ -324,64 +157,87 @@ export default function CartPage() {
                             initial={{ scale: 0.9, y: 20, opacity: 0 }}
                             animate={{ scale: 1, y: 0, opacity: 1 }}
                             exit={{ scale: 0.9, y: 20, opacity: 0 }}
-                            className="bg-white w-full max-w-xl rounded-[3rem] overflow-hidden shadow-2xl relative"
+                            className="bg-white w-full max-w-xl rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
                         >
                             <button
                                 onClick={closeReceipt}
-                                className="absolute top-8 right-8 size-12 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 transition-colors z-10"
+                                className="absolute top-6 right-6 size-10 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 transition-colors z-10"
                             >
                                 <X className="size-5" />
                             </button>
 
-                            <div className="p-12">
-                                <div className="text-center mb-10">
+                            <div className="p-8 pb-4 border-b border-zinc-100 bg-zinc-50/50">
+                                <div className="text-center">
+                                    <h2 className="text-2xl font-black text-zinc-900">Bill Receipt</h2>
+                                    <p className="text-zinc-500 text-sm font-medium mt-1">Review your order details</p>
+                                </div>
+                            </div>
+
+                            <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+                                {cartItems.map((item, i) => (
                                     <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                                        className="size-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-500"
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: 0.1 + (i * 0.05) }}
+                                        key={item.id}
+                                        className="flex items-center gap-4 bg-zinc-50 p-3 rounded-2xl border border-zinc-100"
                                     >
-                                        <CheckCircle2 className="size-10" />
+                                        <div className="size-14 rounded-xl overflow-hidden bg-white shrink-0 border border-zinc-200">
+                                            <Image src={item.image} alt={item.name} width={64} height={64} className="object-cover w-full h-full" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-zinc-900 text-sm line-clamp-1">{item.name}</h4>
+                                            <p className="text-xs text-zinc-400 font-bold">{item.quantity} × ${item.price.toFixed(2)}</p>
+                                        </div>
+                                        <div className="font-black text-zinc-900 text-sm">
+                                            ${(item.price * item.quantity).toFixed(2)}
+                                        </div>
                                     </motion.div>
-                                    <h2 className="text-3xl font-black text-zinc-900 mb-2">Order Confirmed!</h2>
-                                    <p className="text-zinc-500 font-medium">Thank you for your purchase. Your receipt is below.</p>
-                                </div>
+                                ))}
 
-                                <div className="space-y-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {cartItems.map((item, i) => (
-                                        <motion.div
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: 0.4 + (i * 0.1) }}
-                                            key={item.id}
-                                            className="flex items-center gap-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-100"
-                                        >
-                                            <div className="size-16 rounded-xl overflow-hidden bg-white shrink-0 border border-zinc-200">
-                                                <Image src={item.image} alt={item.name} width={64} height={64} className="object-cover w-full h-full" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-zinc-900">{item.name}</h4>
-                                                <p className="text-sm text-zinc-400 font-bold">{item.quantity} × ${item.price.toFixed(2)}</p>
-                                            </div>
-                                            <div className="font-black text-zinc-900">
-                                                ${(item.price * item.quantity).toFixed(2)}
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-
-                                <div className="mt-10 pt-8 border-t border-dashed border-zinc-200">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <span className="text-zinc-500 font-bold tracking-widest uppercase text-xs">Total Amount Paid</span>
-                                        <span className="text-4xl font-black text-black tracking-tighter">${totalPrice.toFixed(2)}</span>
+                                <div className="pt-4 border-t border-dashed border-zinc-200 space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-zinc-500 font-medium">Subtotal</span>
+                                        <span className="font-bold text-zinc-900">${totalPrice.toFixed(2)}</span>
                                     </div>
-                                    <Button
-                                        onClick={closeReceipt}
-                                        className="w-full h-16 rounded-2xl bg-black text-white hover:bg-zinc-800 text-lg font-bold shadow-xl shadow-black/10 active:scale-95 transition-all"
-                                    >
-                                        Done, Continue Shopping
-                                    </Button>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-zinc-500 font-medium">Shipping</span>
+                                        <span className="font-bold text-green-600">Free</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xl mt-4 pt-4 border-t border-zinc-100">
+                                        <span className="font-black text-zinc-900">Total</span>
+                                        <span className="font-black text-black">${totalPrice.toFixed(2)}</span>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={closeReceipt}
+                                    className="flex-1 h-14 rounded-2xl text-base font-bold bg-white hover:bg-zinc-100 border-zinc-200"
+                                >
+                                    Close
+                                </Button>
+                                <Button
+                                    onClick={handleWhatsAppOrder}
+                                    className="flex-[2] h-14 rounded-2xl bg-[#25D366] hover:bg-[#128C7E] text-white text-base font-bold shadow-lg shadow-green-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        width="24"
+                                        height="24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="size-5 fill-current stroke-none"
+                                    >
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                    </svg>
+                                    Order WhatsApp
+                                </Button>
                             </div>
                         </motion.div>
                     </motion.div>

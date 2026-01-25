@@ -5,10 +5,19 @@ import { products } from "@/lib/data";
 import { Button } from "@/components/ui/Button";
 import { Filter, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Shop() {
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // Simulate data fetching
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     const filteredProducts = selectedCategory === "All"
         ? products
@@ -71,7 +80,7 @@ export default function Shop() {
 
                 {/* Product Grid */}
                 <div className="space-y-6">
-                    <ProductGrid products={filteredProducts} />
+                    <ProductGrid products={filteredProducts} isLoading={isLoading} />
                     <div className="flex justify-center pt-8">
                         <Button variant="outline" size="lg" className="rounded-full px-8">Load More</Button>
                     </div>
