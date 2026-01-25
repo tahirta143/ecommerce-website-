@@ -45,12 +45,14 @@ export default function Header() {
         <header
             className={cn(
                 "fixed top-0 left-0 right-0 z-40 transition-all duration-500 ease-in-out font-sans",
-                scrolled || mobileMenuOpen
-                    ? "bg-white/80 backdrop-blur-md border-b border-black/5 py-4 shadow-sm"
-                    : "bg-transparent py-6 border-transparent"
+                mobileMenuOpen
+                    ? "bg-white py-4"
+                    : scrolled
+                        ? "bg-white/80 backdrop-blur-md border-b border-black/5 py-4 shadow-sm"
+                        : "bg-transparent py-6 border-transparent"
             )}
         >
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-4 relative z-50">
                 <div className="flex items-center justify-between">
 
                     {/* Logo Section */}
@@ -64,7 +66,7 @@ export default function Header() {
                             </div>
                             <span className={cn(
                                 "text-2xl font-black tracking-tighter transition-colors duration-300 hidden sm:block",
-                                scrolled ? "text-black" : "text-black md:text-white mix-blend-difference"
+                                scrolled || mobileMenuOpen ? "text-black" : "text-black md:text-white mix-blend-difference"
                             )}>
                                 Luxe<span className="font-light">Market</span>.
                             </span>
@@ -169,7 +171,7 @@ export default function Header() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className={cn("md:hidden rounded-full", scrolled ? "text-foreground" : "text-white mix-blend-difference")}
+                            className={cn("md:hidden rounded-full", scrolled || mobileMenuOpen ? "text-black" : "text-white mix-blend-difference")}
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
@@ -186,7 +188,7 @@ export default function Header() {
                         animate={{ opacity: 1, clipPath: "circle(150% at 100% 0%)" }}
                         exit={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
                         transition={{ duration: 0.5, ease: [0.32, 0, 0.67, 0] }}
-                        className="fixed inset-0 top-0 pt-24 bg-background z-40 md:hidden flex flex-col"
+                        className="fixed inset-0 top-0 pt-24 bg-white z-40 md:hidden flex flex-col"
                     >
                         <div className="container mx-auto px-6 py-8 flex flex-col gap-8 h-full">
 
