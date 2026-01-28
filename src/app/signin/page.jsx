@@ -13,21 +13,48 @@ export default function SignIn() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError("");
-        setIsLoading(true);
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-        // Mock delay for realism
-        await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+        const response = await fetch("https://backend-with-node-js-ueii.onrender.com/api/auth/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+            }),
+        });
 
-        if (email === "test@gmail.com" && password === "123") {
-            router.push("/");
-        } else {
-            setError("Invalid email or password");
-            setIsLoading(false);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Login failed");
         }
-    };
+
+        // Store authentication data
+        if (data.token) {
+            localStorage.setItem("token", data.token);
+        }
+        
+        if (data.user) {
+            localStorage.setItem("user", JSON.stringify(data.user));
+        }
+        
+        // Redirect to appropriate page
+        const redirectPath = data.redirectTo || "/";
+        router.push(redirectPath);
+        
+    } catch (error) {
+        setError(error.message || "Something went wrong. Please try again.");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop')] bg-cover bg-center">
@@ -101,7 +128,7 @@ export default function SignIn() {
                 </form>
 
                 <p className="text-center mt-8 text-sm text-muted-foreground">
-                    Don&apos;t have an account? <Link href="#" className="text-primary font-bold hover:underline">Sign up</Link>
+                    Don&apos;t have an account? <Link href="/signup" className="text-primary font-bold hover:underline">Sign up</Link>
                 </p>
             </motion.div>
         </div>
