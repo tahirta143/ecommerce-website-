@@ -1,89 +1,270 @@
 "use client";
 
-import { products } from "@/lib/data";
 import { Button } from "@/components/ui/Button";
 import { ShoppingBag, Star, Truck, ShieldCheck, ArrowLeft, CheckCircle } from "lucide-react";
-import { useRef, useState } from "react"; // Added imports
+import { useRef, useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { useParams, notFound } from "next/navigation"; // Import useParams and notFound
-import Link from "next/link"; // Added Link import
-import Image from "next/image"; // Added Image import
-
-// NOTE: generateStaticParams removed for now as we are in a dynamic environment or it can be kept if using SSG.
-// Kept simple for client-side functionality focus.
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function ProductPage() {
     const params = useParams();
     const id = params?.id;
-    const product = products.find((p) => p.id.toString() === id);
-    const { addToCart } = useCart(); // Added useCart hook
-
+    const { addToCart } = useCart();
+    
     const containerRef = useRef(null);
     const imageRef = useRef(null);
     const detailsRef = useRef(null);
     const [activeTab, setActiveTab] = useState("Description");
-    const [isAdded, setIsAdded] = useState(false); // To show "Added!" feedback
+    const [isAdded, setIsAdded] = useState(false);
+    
+    // State for API data
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [relatedProducts, setRelatedProducts] = useState([]);
+    const [isAnimating, setIsAnimating] = useState(false);
 
-    const { contextSafe } = useGSAP(() => {
+    // Fetch product data
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchProduct = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                
+                // Fetch single product
+                const response = await fetch(`https://backend-with-node-js-ueii.onrender.com/api/products/${id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch product: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Check if API returned success and has data
+                if (data.success && data.data) {
+                    setProduct(data.data);
+                    
+                    // Fetch all products to find related ones
+                    const allProductsResponse = await fetch('https://backend-with-node-js-ueii.onrender.com/api/products');
+                    if (allProductsResponse.ok) {
+                        const allProductsData = await allProductsResponse.json();
+                        
+                        if (allProductsData.success && allProductsData.data) {
+                            // Filter products with same category AND different ID
+                            // Take only the first 4 related products
+                            const relatedProducts = allProductsData.data
+                                .filter(p => p._id !== id && p.category === data.data.category)
+                                .slice(0, 4);
+                            setRelatedProducts(relatedProducts);
+                        }
+                    }
+                } else {
+                    throw new Error('Product not found in API response');
+                }
+                
+            } catch (err) {
+                setError(err.message);
+                console.error("Error fetching product:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, [id]);
+
+    // GSAP Animation for product details
+    useGSAP(() => {
+        if (!product || loading) return;
+        
+        // Reset elements to initial state
+        gsap.set([imageRef.current, detailsRef.current], { clearProps: "all" });
+        
+        const tl = gsap.timeline({
+            defaults: { 
+                ease: "power3.out",
+                duration: 0.8 
+            }
+        });
+
+        // Image animation
+        tl.fromTo(imageRef.current,
+            { 
+                opacity: 0, 
+                x: -80, 
+                scale: 0.8,
+                rotation: -5
+            },
+            { 
+                opacity: 1, 
+                x: 0, 
+                scale: 1,
+                rotation: 0,
+                duration: 1.2
+            }
+        );
+
+        // Details animation with staggered children
+        tl.fromTo(detailsRef.current.children,
+            { 
+                opacity: 0, 
+                y: 30,
+                filter: "blur(10px)"
+            },
+            { 
+                opacity: 1, 
+                y: 0,
+                filter: "blur(0px)",
+                stagger: 0.15,
+                duration: 0.8
+            },
+            "-=0.5"
+        );
+
+        // Add subtle floating animation to image
+        gsap.to(imageRef.current, {
+            y: -10,
+            duration: 2,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+            delay: 1
+        });
+
+    }, { scope: containerRef, dependencies: [product, loading] });
+
+    // GSAP for tab changes
+    useGSAP(() => {
+        if (isAnimating) return;
+
+        const tl = gsap.timeline();
+        
+        tl.to(".tab-content-area", {
+            opacity: 0,
+            y: 20,
+            duration: 0.2,
+            ease: "power2.in"
+        })
+        .add(() => {
+            setIsAnimating(false);
+        })
+        .to(".tab-content-area", {
+            opacity: 1,
+            y: 0,
+            duration: 0.4,
+            ease: "power3.out"
+        }, "+=0.1");
+
+    }, { scope: containerRef, dependencies: [activeTab] });
+
+    const handleAddToCart = () => {
         if (!product) return;
-        // Entry Animation
-        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-
-        if (imageRef.current && detailsRef.current) {
-            tl.fromTo(imageRef.current,
-                { opacity: 0, x: -50, scale: 0.9 },
-                { opacity: 1, x: 0, scale: 1, duration: 1 }
-            )
-                .fromTo(detailsRef.current.children,
-                    { opacity: 0, x: 50 },
-                    { opacity: 1, x: 0, stagger: 0.1, duration: 0.8 },
-                    "-=0.5"
-                );
-        }
-    }, { scope: containerRef });
-
-    if (!id) return null;
-    if (!product) return notFound();
-
-    const handleAddToCart = contextSafe(() => {
-        addToCart(product);
+        
+        // Transform API product to match cart structure
+        const cartProduct = {
+            id: product._id,
+            name: product.title,
+            price: product.price,
+            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg",
+            category: product.category
+        };
+        
+        addToCart(cartProduct);
         setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 2000);
 
-        // Simple scale animation for button
-        gsap.fromTo("#add-cart-btn", { scale: 0.95 }, { scale: 1, duration: 0.2, ease: "back.out(2)" });
-    });
+        // Add to cart animation
+        gsap.to("#add-cart-btn", {
+            scale: 1.1,
+            duration: 0.1,
+            yoyo: true,
+            repeat: 1,
+            ease: "power2.inOut",
+            onComplete: () => {
+                setTimeout(() => setIsAdded(false), 2000);
+            }
+        });
+
+        // Floating cart icon animation
+        const cartIcon = gsap.utils.toArray(".cart-icon")[0];
+        if (cartIcon) {
+            gsap.to(cartIcon, {
+                scale: 1.3,
+                duration: 0.2,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.inOut"
+            });
+        }
+    };
 
     const handleWhatsAppOrder = () => {
+        if (!product) return;
+        
         const message = `Hi, I want to order this product:
         
-Name: ${product.name}
+Name: ${product.title}
 Price: $${product.price}
 Link: ${window.location.href}
         
 Please confirm my order.`;
 
         const encodedMessage = encodeURIComponent(message);
-        // Replace with actual number if provided, otherwise generic
         window.open(`https://wa.me/923254828492?text=${encodedMessage}`, '_blank');
+
+        // WhatsApp button animation
+        gsap.to("#whatsapp-btn", {
+            scale: 0.95,
+            duration: 0.1,
+            yoyo: true,
+            repeat: 1,
+            ease: "power2.inOut"
+        });
     };
 
-    const handleTabChange = contextSafe((tab) => {
-        if (tab === activeTab) return;
+    const handleTabChange = (tab) => {
+        if (tab === activeTab || isAnimating) return;
+        
+        setIsAnimating(true);
+        setActiveTab(tab);
+    };
 
-        // Simple fade out/in effect
-        gsap.to(".tab-content-area", {
-            opacity: 0,
-            y: 10,
-            duration: 0.2,
-            onComplete: () => {
-                setActiveTab(tab);
-                gsap.to(".tab-content-area", { opacity: 1, y: 0, duration: 0.3 });
-            }
-        });
-    });
+    // Loading state
+    if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-8 min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                    <p className="text-muted-foreground">Loading product details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error || !product) {
+        return (
+            <div className="container mx-auto px-4 py-8 min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">😕</div>
+                    <h2 className="text-2xl font-bold mb-2">Product Not Found</h2>
+                    <p className="text-muted-foreground mb-6">
+                        {error || "The product you're looking for doesn't exist."}
+                    </p>
+                    <Link href="/">
+                        <Button>
+                            <ArrowLeft className="mr-2 size-4" /> Back to Shopping
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div ref={containerRef} className="container mx-auto px-4 py-8">
@@ -91,27 +272,34 @@ Please confirm my order.`;
                 <ArrowLeft className="mr-2 size-4" /> Back to Shopping
             </Link>
 
-            <div className="grid md:grid-cols-2 gap-12 lg:gap-24 ">
+            <div className="grid md:grid-cols-2 gap-12 lg:gap-24">
                 {/* Product Image */}
-                <div ref={imageRef} className=" w-200px h-200px aspect-square rounded-3xl overflow-hidden bg-muted border border-border">
+                <div ref={imageRef} className="w-full aspect-square rounded-3xl overflow-hidden bg-muted border border-border relative shadow-2xl">
                     <Image
-                        src={product.image}
-                        alt={product.name}
+                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg"}
+                        alt={product.title}
                         fill
                         className="object-cover"
                         priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
                     />
+                    {/* Image overlay for better contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
                 </div>
 
                 {/* Product Details */}
                 <div ref={detailsRef} className="space-y-8">
                     <div>
-                        <span className="text-primary font-medium tracking-wider uppercase text-sm">
-                            {product.category}
+                        <span className="text-primary font-medium tracking-wider uppercase text-sm inline-block px-4 py-1.5 bg-primary/10 rounded-full">
+                            {product.category || "Uncategorized"}
                         </span>
-                        <h1 className="text-4xl font-bold mt-2 mb-4 text-foreground">{product.name}</h1>
+                        <h1 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-foreground leading-tight">
+                            {product.title}
+                        </h1>
                         <div className="flex items-center gap-4">
-                            <span className="text-3xl font-bold text-foreground">${product.price.toFixed(2)}</span>
+                            <span className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                                ${product.price?.toFixed(2) || "0.00"}
+                            </span>
                             <div className="flex items-center gap-1 text-yellow-500">
                                 <Star className="size-5 fill-current" />
                                 <span className="font-medium text-foreground">4.9</span>
@@ -120,20 +308,24 @@ Please confirm my order.`;
                         </div>
                     </div>
 
-                    <p className="text-muted-foreground leading-relaxed text-lg">
-                        Experience premium quality with our {product.name.toLowerCase()}.
-                        Designed for modern lifestyles, this product combines aesthetics with functionality.
-                        Perfect for those who appreciate attention to detail.
+                    <p className="text-muted-foreground leading-relaxed text-lg bg-card/50 p-6 rounded-2xl border border-border">
+                        {product.description || `Experience premium quality with our ${product.title.toLowerCase()}. Designed for modern lifestyles, this product combines aesthetics with functionality.`}
                     </p>
 
                     <div className="space-y-4 pt-4 border-t border-border">
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground p-3 bg-card/30 rounded-xl">
                             <Truck className="size-5 text-primary" />
                             <span>Free global shipping on orders over $200</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground p-3 bg-card/30 rounded-xl">
                             <ShieldCheck className="size-5 text-primary" />
                             <span>2-year commercial warranty included</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm p-3 bg-card/30 rounded-xl">
+                            <div className={`size-3 rounded-full ${product.stock > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                            <span className={product.stock > 0 ? 'text-green-600 font-medium' : 'text-red-600'}>
+                                {product.stock > 0 ? `✓ In Stock (${product.stock} available)` : '✗ Out of Stock'}
+                            </span>
                         </div>
                     </div>
 
@@ -141,14 +333,19 @@ Please confirm my order.`;
                         <Button
                             id="add-cart-btn"
                             size="lg"
-                            className={`flex-1 text-lg h-14 rounded-xl transition-all shadow-lg hover:translate-y-[-2px] ${isAdded ? "bg-green-500 hover:bg-green-600" : "bg-zinc-100 text-foreground hover:bg-zinc-200"
-                                }`}
+                            className={`flex-1 text-lg h-14 rounded-xl transition-all shadow-lg hover:shadow-xl ${isAdded 
+                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700" 
+                                : "bg-gradient-to-r from-zinc-100 to-zinc-200 text-foreground hover:from-zinc-200 hover:to-zinc-300 dark:from-zinc-900 dark:to-zinc-800 dark:text-white"
+                            }`}
                             onClick={handleAddToCart}
+                            disabled={product.stock <= 0}
                         >
                             {isAdded ? (
                                 <>
-                                    <CheckCircle className="mr-2 size-5" /> Added to Cart
+                                    <CheckCircle className="mr-2 size-5 animate-bounce" /> Added to Cart
                                 </>
+                            ) : product.stock <= 0 ? (
+                                "Out of Stock"
                             ) : (
                                 <>
                                     <ShoppingBag className="mr-2 size-5" /> Add to Cart
@@ -156,9 +353,11 @@ Please confirm my order.`;
                             )}
                         </Button>
                         <Button
+                            id="whatsapp-btn"
                             size="lg"
-                            className="flex-1 text-lg h-14 rounded-xl transition-all shadow-xl hover:shadow-2xl hover:translate-y-[-2px] bg-[#25D366] hover:bg-[#128C7E] text-white"
+                            className="flex-1 text-lg h-14 rounded-xl transition-all shadow-xl hover:shadow-2xl bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white hover:from-[#128C7E] hover:to-[#075E54]"
                             onClick={handleWhatsAppOrder}
+                            disabled={product.stock <= 0}
                         >
                             <svg
                                 viewBox="0 0 24 24"
@@ -186,8 +385,10 @@ Please confirm my order.`;
                         <button
                             key={tab}
                             onClick={() => handleTabChange(tab)}
-                            className={`px-8 py-4 text-lg font-medium transition-all border-b-2 -mb-[2px] whitespace-nowrap ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                                }`}
+                            className={`px-8 py-4 text-lg font-medium transition-all border-b-2 -mb-[2px] whitespace-nowrap ${activeTab === tab 
+                                ? "border-primary text-primary" 
+                                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                            }`}
                         >
                             {tab}
                         </button>
@@ -197,9 +398,7 @@ Please confirm my order.`;
                     {activeTab === "Description" && (
                         <>
                             <p>
-                                Elevate your lifestyle with the {product.name}. Created with precision and care,
-                                this masterpiece offers unparalleled performance and aesthetic appeal.
-                                Whether you are a professional or an enthusiast, this is the perfect addition to your collection.
+                                {product.description || `Elevate your lifestyle with the ${product.title}. Created with precision and care, this masterpiece offers unparalleled performance and aesthetic appeal. Whether you are a professional or an enthusiast, this is the perfect addition to your collection.`}
                             </p>
                             <ul className="list-disc pl-5 space-y-2 mt-4">
                                 <li>Premium materials for durability and comfort.</li>
@@ -210,39 +409,28 @@ Please confirm my order.`;
                     )}
                     {activeTab === "Reviews" && (
                         <div className="space-y-6">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="bg-muted/30 p-6 rounded-xl border border-border">
-                                    <div className="flex items-center gap-2 mb-2 text-yellow-500">
-                                        {"★".repeat(5)}
-                                    </div>
-                                    <h4 className="font-bold text-foreground mb-1">Absolutely fantastic!</h4>
-                                    <p className="text-sm text-muted-foreground">&quot;I&apos;ve been looking for something like this for ages. The quality is unmatched and the delivery was super fast.&quot;</p>
-                                    <div className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Verified Buyer • 2 days ago</div>
-                                </div>
-                            ))}
+                            <p>No reviews yet. Be the first to review this product!</p>
                         </div>
                     )}
                     {activeTab === "Specifications" && (
                         <div className="grid md:grid-cols-2 gap-x-12 gap-y-4">
                             <div className="flex justify-between py-3 border-b border-border">
-                                <span>Material</span>
-                                <span className="font-medium text-foreground">Premium Grade A</span>
+                                <span>Product ID</span>
+                                <span className="font-medium text-foreground">{product._id}</span>
                             </div>
                             <div className="flex justify-between py-3 border-b border-border">
-                                <span>Weight</span>
-                                <span className="font-medium text-foreground">1.2 kg</span>
+                                <span>Category</span>
+                                <span className="font-medium text-foreground">{product.category}</span>
                             </div>
                             <div className="flex justify-between py-3 border-b border-border">
-                                <span>Dimensions</span>
-                                <span className="font-medium text-foreground">24 x 12 x 5 cm</span>
+                                <span>Stock Available</span>
+                                <span className="font-medium text-foreground">{product.stock}</span>
                             </div>
                             <div className="flex justify-between py-3 border-b border-border">
-                                <span>Warranty</span>
-                                <span className="font-medium text-foreground">2 Years Limited</span>
-                            </div>
-                            <div className="flex justify-between py-3 border-b border-border">
-                                <span>Origin</span>
-                                <span className="font-medium text-foreground">Designed in California</span>
+                                <span>Created</span>
+                                <span className="font-medium text-foreground">
+                                    {new Date(product.createdAt).toLocaleDateString()}
+                                </span>
                             </div>
                         </div>
                     )}
@@ -250,30 +438,51 @@ Please confirm my order.`;
             </div>
 
             {/* Related Products */}
-            <div className="mt-24 border-t border-border pt-16">
-                <h2 className="text-3xl font-bold mb-12">You might also like</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {products
-                        .filter(p => p.category === product.category && p.id !== product.id)
-                        .slice(0, 4)
-                        .map(relatedProduct => (
-                            <div key={relatedProduct.id} className="group">
-                                <Link href={`/product/${relatedProduct.id}`}>
-                                    <div className="relative aspect-[4/5] bg-muted rounded-2xl overflow-hidden mb-4 border border-border">
+            {relatedProducts.length > 0 && (
+                <div className="mt-24 border-t border-border pt-16">
+                    <h2 className="text-3xl font-bold mb-12">You might also like</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {relatedProducts.map((relatedProduct, index) => (
+                            <div 
+                                key={relatedProduct._id} 
+                                className="group"
+                                ref={el => {
+                                    // Add staggered animation for related products
+                                    if (el) {
+                                        gsap.fromTo(el,
+                                            { opacity: 0, y: 30 },
+                                            { 
+                                                opacity: 1, 
+                                                y: 0, 
+                                                duration: 0.6,
+                                                delay: index * 0.1,
+                                                ease: "power3.out"
+                                            }
+                                        );
+                                    }
+                                }}
+                            >
+                                <Link href={`/product/${relatedProduct._id}`}>
+                                    <div className="relative aspect-[4/5] bg-muted rounded-2xl overflow-hidden mb-4 border border-border group-hover:border-primary transition-all duration-300">
                                         <Image
-                                            src={relatedProduct.image}
-                                            alt={relatedProduct.name}
+                                            src={relatedProduct.images && relatedProduct.images.length > 0 ? relatedProduct.images[0] : "/placeholder.jpg"}
+                                            alt={relatedProduct.title}
                                             fill
-                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                                         />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     </div>
-                                    <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{relatedProduct.name}</h3>
-                                    <p className="text-muted-foreground">${relatedProduct.price.toFixed(2)}</p>
+                                    <h3 className="font-bold text-lg group-hover:text-primary transition-colors duration-300">
+                                        {relatedProduct.title}
+                                    </h3>
+                                    <p className="text-muted-foreground">${relatedProduct.price?.toFixed(2) || "0.00"}</p>
                                 </Link>
                             </div>
                         ))}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
