@@ -1,3 +1,112 @@
+// "use client";
+
+// import { Button } from "@/components/ui/Button";
+// import Link from "next/link";
+// import { motion } from "framer-motion";
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
+
+// export default function SignIn() {
+//     const router = useRouter();
+//     const [email, setEmail] = useState("");
+//     const [password, setPassword] = useState("");
+//     const [error, setError] = useState("");
+//     const [isLoading, setIsLoading] = useState(false);
+
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         setError("");
+//         setIsLoading(true);
+
+//         // Mock delay for realism
+//         await new Promise(resolve => setTimeout(resolve, 800));
+
+//         if (email === "test@gmail.com" && password === "123") {
+//             router.push("/");
+//         } else {
+//             setError("Invalid email or password");
+//             setIsLoading(false);
+//         }
+//     };
+
+//     return (
+//         <div className="min-h-[80vh] flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop')] bg-cover bg-center">
+//             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm"></div>
+
+//             <motion.div
+//                 initial={{ opacity: 0, scale: 0.95 }}
+//                 animate={{ opacity: 1, scale: 1 }}
+//                 className="w-full max-w-md relative z-10 bg-card/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl shadow-2xl"
+//             >
+//                 <div className="text-center mb-8">
+//                     <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+//                     <p className="text-muted-foreground">Sign in to your account to continue</p>
+//                     <p className="text-xs text-primary mt-2">Mock: test@example.com / password123</p>
+//                 </div>
+
+//                 <form className="space-y-6" onSubmit={handleSubmit}>
+//                     {error && (
+//                         <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+//                             {error}
+//                         </div>
+//                     )}
+//                     <div className="space-y-2">
+//                         <label className="text-sm font-medium ml-1">Email</label>
+//                         <input
+//                             type="email"
+//                             placeholder="hello@example.com"
+//                             value={email}
+//                             onChange={(e) => setEmail(e.target.value)}
+//                             required
+//                             className="w-full h-12 px-4 rounded-xl border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+//                         />
+//                     </div>
+//                     <div className="space-y-2">
+//                         <div className="flex justify-between ml-1">
+//                             <label className="text-sm font-medium">Password</label>
+//                             <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+//                         </div>
+//                         <input
+//                             type="password"
+//                             placeholder="••••••••"
+//                             value={password}
+//                             onChange={(e) => setPassword(e.target.value)}
+//                             required
+//                             className="w-full h-12 px-4 rounded-xl border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+//                         />
+//                     </div>
+
+//                     <Button
+//                         size="lg"
+//                         className="w-full text-lg rounded-xl h-12"
+//                         type="submit"
+//                         disabled={isLoading}
+//                     >
+//                         {isLoading ? "Signing In..." : "Sign In"}
+//                     </Button>
+
+//                     <div className="relative">
+//                         <div className="absolute inset-0 flex items-center">
+//                             <div className="w-full border-t border-border"></div>
+//                         </div>
+//                         <div className="relative flex justify-center text-xs uppercase">
+//                             <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+//                         </div>
+//                     </div>
+
+//                     <div className="grid grid-cols-2 gap-4">
+//                         <Button variant="outline" type="button" className="rounded-xl">Google</Button>
+//                         <Button variant="outline" type="button" className="rounded-xl">GitHub</Button>
+//                     </div>
+//                 </form>
+
+//                 <p className="text-center mt-8 text-sm text-muted-foreground">
+//                     Don&apos;t have an account? <Link href="#" className="text-primary font-bold hover:underline">Sign up</Link>
+//                 </p>
+//             </motion.div>
+//         </div>
+//     );
+// }
 "use client";
 
 import { Button } from "@/components/ui/Button";
@@ -5,6 +114,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
 
 export default function SignIn() {
     const router = useRouter();
@@ -12,20 +123,94 @@ export default function SignIn() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
+    // 🔐 REAL LOGIN with your backend API
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
         setIsLoading(true);
 
-        // Mock delay for realism
-        await new Promise(resolve => setTimeout(resolve, 800));
+        try {
+            const response = await fetch("https://backend-with-node-js-ueii.onrender.com/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email, password }),
+            });
 
-        if (email === "test@gmail.com" && password === "123") {
-            router.push("/");
-        } else {
-            setError("Invalid email or password");
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Save token to localStorage/sessionStorage
+                localStorage.setItem("authToken", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+                
+                // Redirect to dashboard/home
+                router.push("/dashboard");
+            } else {
+                setError(data.message || "Invalid email or password");
+            }
+        } catch (err) {
+            setError("Network error. Please try again.");
+            console.error("Login error:", err);
+        } finally {
             setIsLoading(false);
+        }
+    };
+
+    // 🔵 GOOGLE OAUTH - Redirect method (recommended)
+    const handleGoogleLogin = () => {
+        setIsGoogleLoading(true);
+        
+        // Save current page to return after login
+        sessionStorage.setItem("redirectUrl", window.location.pathname);
+        
+        // Redirect to Google OAuth endpoint
+        window.location.href = "https://backend-with-node-js-ueii.onrender.com/api/auth/google";
+    };
+
+    // 🔵 GOOGLE OAUTH - Token exchange method (alternative)
+    const handleGoogleTokenLogin = async (googleToken) => {
+        // If you implement POST /api/auth/google/token endpoint
+        try {
+            const response = await fetch("https://backend-with-node-js-ueii.onrender.com/api/auth/google/token", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ googleToken }),
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                localStorage.setItem("authToken", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
+                router.push("/dashboard");
+            }
+        } catch (err) {
+            setError("Google login failed");
+        }
+    };
+
+    // 🔄 Handle Google OAuth callback (add this to your callback page)
+    const GoogleCallbackPage = () => {
+        // Create this at /auth/callback/page.jsx
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        const name = params.get("name");
+        const email = params.get("email");
+
+        if (token) {
+            localStorage.setItem("authToken", token);
+            localStorage.setItem("userName", decodeURIComponent(name || ""));
+            localStorage.setItem("userEmail", decodeURIComponent(email || ""));
+            router.push("/dashboard");
+        } else {
+            const error = params.get("error");
+            router.push("/signin?error=" + error);
         }
     };
 
@@ -41,7 +226,9 @@ export default function SignIn() {
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
                     <p className="text-muted-foreground">Sign in to your account to continue</p>
-                    <p className="text-xs text-primary mt-2">Mock: test@example.com / password123</p>
+                    <p className="text-xs text-primary mt-2">
+                        API: https://backend-with-node-js-ueii.onrender.com
+                    </p>
                 </div>
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
@@ -50,6 +237,7 @@ export default function SignIn() {
                             {error}
                         </div>
                     )}
+                    
                     <div className="space-y-2">
                         <label className="text-sm font-medium ml-1">Email</label>
                         <input
@@ -61,10 +249,13 @@ export default function SignIn() {
                             className="w-full h-12 px-4 rounded-xl border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                         />
                     </div>
+                    
                     <div className="space-y-2">
                         <div className="flex justify-between ml-1">
                             <label className="text-sm font-medium">Password</label>
-                            <Link href="#" className="text-xs text-primary hover:underline">Forgot password?</Link>
+                            <Link href="#" className="text-xs text-primary hover:underline">
+                                Forgot password?
+                            </Link>
                         </div>
                         <input
                             type="password"
@@ -90,18 +281,48 @@ export default function SignIn() {
                             <div className="w-full border-t border-border"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Or continue with
+                            </span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <Button variant="outline" type="button" className="rounded-xl">Google</Button>
-                        <Button variant="outline" type="button" className="rounded-xl">GitHub</Button>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            className="rounded-xl flex items-center justify-center gap-2"
+                            onClick={handleGoogleLogin}
+                            disabled={isGoogleLoading}
+                        >
+                            <FcGoogle className="w-5 h-5" />
+                            {isGoogleLoading ? "Redirecting..." : "Google"}
+                        </Button>
+                        
+                        <Button
+                            variant="outline"
+                            type="button"
+                            className="rounded-xl flex items-center justify-center gap-2"
+                            // Add GitHub OAuth later
+                        >
+                            <FaGithub className="w-5 h-5" />
+                            GitHub
+                        </Button>
                     </div>
                 </form>
 
                 <p className="text-center mt-8 text-sm text-muted-foreground">
-                    Don&apos;t have an account? <Link href="#" className="text-primary font-bold hover:underline">Sign up</Link>
+                    Don&apos;t have an account?{" "}
+                    <Link 
+                        href="/signup" 
+                        className="text-primary font-bold hover:underline"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            router.push("/signup");
+                        }}
+                    >
+                        Sign up
+                    </Link>
                 </p>
             </motion.div>
         </div>
