@@ -370,30 +370,6 @@ export function ProductGrid({
             </div>
           ) : null}
         </div>
-
-        {/* Debug info - remove in production */}
-        {!isLoading && !error && products.length > 0 && (
-          <div className="text-xs text-gray-500 mt-4 text-center">
-            <p>Found {products.length} products</p>
-            <p>
-              First product images: {JSON.stringify(products[0]?.images?.[0])}
-            </p>
-          </div>
-        )}
-
-        {/* Display product count when not loading and no error */}
-        {!isLoading && !error && products.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center mt-8 pt-6 border-t"
-          >
-            <p className="text-sm text-muted-foreground">
-              Showing {products.length} product
-              {products.length !== 1 ? "s" : ""}
-            </p>
-          </motion.div>
-        )}
       </div>
     </section>
   );

@@ -11,6 +11,8 @@ import {
   X,
   SlidersHorizontal,
   RefreshCw,
+  Search,
+  Menu,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
@@ -40,7 +42,9 @@ export default function Shop() {
   const [priceRange, setPriceRange] = useState([0, 2000]);
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [categories, setCategories] = useState(["All"]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Refs
   const containerRef = useRef(null);
@@ -48,6 +52,7 @@ export default function Shop() {
   const sidebarRef = useRef(null);
   const gridRef = useRef(null);
   const filterPanelRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const hasAnimatedRef = useRef(false);
 
   // Fetch products
@@ -105,9 +110,25 @@ export default function Shop() {
     fetchProducts();
   }, []);
 
-  // Apply filters
+  // Apply filters and search
   const filteredProducts = allProducts.filter((product) => {
-    // Category filter - FIXED: Now properly filters by category
+    // Search filter
+    if (searchQuery.trim() !== "") {
+      const searchLower = searchQuery.toLowerCase();
+      const title = product.title?.toLowerCase() || "";
+      const description = product.description?.toLowerCase() || "";
+      const category = product.category?.toLowerCase() || "";
+
+      if (
+        !title.includes(searchLower) &&
+        !description.includes(searchLower) &&
+        !category.includes(searchLower)
+      ) {
+        return false;
+      }
+    }
+
+    // Category filter
     if (selectedCategory !== "All") {
       if (!product.category || product.category !== selectedCategory) {
         return false;
@@ -136,13 +157,14 @@ export default function Shop() {
         return (b.title || "").localeCompare(a.title || "");
       case "featured":
       default:
-        return 0; // Keep original order for featured
+        return 0;
     }
   });
 
   // Reset all filters
   const resetFilters = () => {
     setSelectedCategory("All");
+    setSearchQuery("");
 
     // Reset price range to calculated max
     const maxPrice =
@@ -161,17 +183,16 @@ export default function Shop() {
     });
   };
 
-  // GSAP Animations - FIXED: Remove dependencies that cause re-runs
+  // GSAP Animations
   useGSAP(
     () => {
       if (!containerRef.current || hasAnimatedRef.current) return;
 
-      // Hero section animation - always play on mount
       const tl = gsap.timeline({
         defaults: { duration: 0.8, ease: "power3.out" },
       });
 
-      // Hero text animation - always plays
+      // Hero text animation
       tl.from(headerRef.current, {
         opacity: 0,
         y: 50,
@@ -190,22 +211,23 @@ export default function Shop() {
         "-=0.3",
       );
 
-      // Sidebar animation - with ScrollTrigger but without reverse
-      gsap.from(sidebarRef.current, {
-        x: -50,
-        opacity: 0,
-        duration: 1,
-        delay: 0.3,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: sidebarRef.current,
-          start: "top 90%",
-          end: "bottom top",
-          toggleActions: "play none none none", // Changed to prevent reverse
-        },
-      });
+      // Sidebar animation - only on desktop
+      if (window.innerWidth >= 1024) {
+        gsap.from(sidebarRef.current, {
+          x: -50,
+          opacity: 0,
+          duration: 1,
+          delay: 0.3,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: sidebarRef.current,
+            start: "top 90%",
+            toggleActions: "play none none none",
+          },
+        });
+      }
 
-      // Product grid animation - always visible
+      // Product grid animation
       gsap.from(gridRef.current, {
         y: 30,
         opacity: 0,
@@ -215,32 +237,32 @@ export default function Shop() {
         scrollTrigger: {
           trigger: gridRef.current,
           start: "top 90%",
-          end: "bottom top",
           toggleActions: "play none none none",
         },
       });
 
       // Category buttons animation
-      const categoryButtons = document.querySelectorAll(
-        '[class^="category-btn-"]',
-      );
-      categoryButtons.forEach((btn, index) => {
-        gsap.from(btn, {
-          x: -20,
-          opacity: 0,
-          duration: 0.6,
-          delay: 0.2 + index * 0.1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: btn,
-            start: "top 90%",
-            end: "bottom top",
-            toggleActions: "play none none none",
-          },
+      if (window.innerWidth >= 1024) {
+        const categoryButtons = document.querySelectorAll(
+          '[class^="category-btn-"]',
+        );
+        categoryButtons.forEach((btn, index) => {
+          gsap.from(btn, {
+            x: -20,
+            opacity: 0,
+            duration: 0.6,
+            delay: 0.2 + index * 0.1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: btn,
+              start: "top 90%",
+              toggleActions: "play none none none",
+            },
+          });
         });
-      });
+      }
 
-      // Stats counter animation with counting effect
+      // Stats counter animation
       gsap.utils.toArray(".stat-number").forEach((stat) => {
         const target = parseInt(stat.textContent) || 0;
         gsap.fromTo(
@@ -254,37 +276,11 @@ export default function Shop() {
             scrollTrigger: {
               trigger: stat,
               start: "top 90%",
-              end: "bottom top",
               toggleActions: "play none none none",
             },
           },
         );
       });
-
-      // Floating elements animation
-      gsap.to(".floating-element", {
-        y: -10,
-        duration: 2,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-
-      // Price range slider animation
-      const priceSlider = document.querySelector(".price-slider-track");
-      if (priceSlider) {
-        gsap.from(priceSlider, {
-          width: 0,
-          duration: 1.5,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: priceSlider,
-            start: "top 90%",
-            end: "bottom top",
-            toggleActions: "play none none none",
-          },
-        });
-      }
 
       hasAnimatedRef.current = true;
     },
@@ -296,37 +292,91 @@ export default function Shop() {
     if (showFilters && filterPanelRef.current) {
       gsap.fromTo(
         filterPanelRef.current,
-        { x: -300, opacity: 0 },
+        { x: "100%", opacity: 0 },
         {
           x: 0,
           opacity: 1,
-          duration: 0.5,
+          duration: 0.3,
           ease: "power3.out",
         },
       );
     } else if (filterPanelRef.current) {
       gsap.to(filterPanelRef.current, {
-        x: -300,
+        x: "100%",
         opacity: 0,
-        duration: 0.5,
+        duration: 0.3,
         ease: "power3.in",
       });
     }
   }, [showFilters]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("Selected Category:", selectedCategory);
-    console.log("Filtered Products:", filteredProducts.length);
-    console.log("All Products:", allProducts.length);
-    console.log("Categories:", categories);
-  }, [selectedCategory, filteredProducts, allProducts, categories]);
+  // Mobile menu animation
+  useGSAP(() => {
+    if (showMobileMenu && mobileMenuRef.current) {
+      gsap.fromTo(
+        mobileMenuRef.current,
+        { y: -20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.3,
+          ease: "power3.out",
+        },
+      );
+    }
+  }, [showMobileMenu]);
 
   return (
     <div
       ref={containerRef}
       className="min-h-screen bg-gradient-to-b from-background via-background/95 to-secondary/10"
     >
+      {/* Mobile Menu - Categories */}
+      {showMobileMenu && (
+        <div className="fixed inset-x-0 top-0 z-50 lg:hidden pt-16">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowMobileMenu(false)}
+          />
+
+          <div
+            ref={mobileMenuRef}
+            className="relative mx-4 mt-2 bg-background border border-border rounded-xl shadow-2xl overflow-hidden"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">Categories</h3>
+                <button
+                  onClick={() => setShowMobileMenu(false)}
+                  className="p-1 hover:bg-secondary rounded"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setShowMobileMenu(false);
+                    }}
+                    className={`p-3 rounded-lg text-sm text-center transition-all ${
+                      selectedCategory === category
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Filters Panel */}
       {showFilters && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -339,7 +389,7 @@ export default function Shop() {
           {/* Filters Panel */}
           <div
             ref={filterPanelRef}
-            className="absolute left-0 top-0 h-full w-80 bg-background border-r border-border shadow-2xl overflow-y-auto"
+            className="absolute right-0 top-0 h-full w-full max-w-sm bg-background border-l border-border shadow-2xl overflow-y-auto"
           >
             <div className="p-6">
               <div className="flex justify-between items-center mb-8">
@@ -355,6 +405,20 @@ export default function Shop() {
                 </button>
               </div>
 
+              {/* Mobile Search */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
               {/* Mobile Categories */}
               <div className="mb-8">
                 <h3 className="font-semibold mb-4">Categories</h3>
@@ -364,8 +428,6 @@ export default function Shop() {
                       key={category}
                       onClick={() => {
                         setSelectedCategory(category);
-                        setShowFilters(false);
-                        // Animation feedback
                         gsap.to(`[data-category="${category}"]`, {
                           scale: 0.95,
                           duration: 0.1,
@@ -375,7 +437,7 @@ export default function Shop() {
                         });
                       }}
                       data-category={category}
-                      className={`px-4 py-2 rounded-full text-sm transition-all ${
+                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${
                         selectedCategory === category
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-muted-foreground hover:bg-secondary/80"
@@ -421,11 +483,8 @@ export default function Shop() {
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => {
-                        setSortBy(option.value);
-                        setShowFilters(false);
-                      }}
-                      className={`w-full text-left p-3 rounded-lg transition-all ${
+                      onClick={() => setSortBy(option.value)}
+                      className={`w-full text-left p-3 rounded-lg transition-all text-sm ${
                         sortBy === option.value
                           ? "bg-primary/10 text-primary border border-primary/20"
                           : "hover:bg-secondary"
@@ -438,21 +497,21 @@ export default function Shop() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3">
                 <Button
                   onClick={() => {
                     resetFilters();
                     setShowFilters(false);
                   }}
                   variant="outline"
-                  className="flex-1 gap-2 reset-btn"
+                  className="w-full gap-2 reset-btn"
                 >
                   <RefreshCw className="size-4" />
-                  Reset
+                  Reset All
                 </Button>
                 <Button
                   onClick={() => setShowFilters(false)}
-                  className="flex-1"
+                  className="w-full"
                 >
                   Apply Filters
                 </Button>
@@ -462,49 +521,59 @@ export default function Shop() {
         </div>
       )}
 
-      {/* Decorative floating elements */}
-      <div className="floating-element absolute top-20 right-10 w-24 h-24 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="floating-element absolute bottom-40 left-10 w-32 h-32 bg-accent/5 rounded-full blur-3xl pointer-events-none" />
-
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="container mx-auto px-4 py-16 md:py-24">
+        <div className="container mx-auto px-4 sm:px-6 py-12 md:py-20 lg:py-24">
           <motion.div
             ref={headerRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center max-w-3xl mx-auto mb-12"
+            className="text-center max-w-4xl mx-auto mb-8 md:mb-12"
           >
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium">
-              <Sparkles className="size-4" />
+            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 md:px-4 md:py-2 bg-primary/10 rounded-full text-primary text-xs md:text-sm font-medium">
+              <Sparkles className="size-3 md:size-4" />
               Premium Collection
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 md:mb-6 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
               Discover Luxury
             </h1>
 
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground mb-6 md:mb-8 leading-relaxed px-4 sm:px-0">
               Explore our curated collection of premium products designed for
               the modern lifestyle.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-6 mb-12 hero-stats">
+            {/* Search Bar for Mobile/Tablet */}
+            <div className="mb-6 md:mb-8 max-w-md mx-auto px-4 sm:px-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 hero-stats px-4 sm:px-0">
               {[
                 { value: allProducts.length.toString(), label: "Products" },
                 { value: "4.9", label: "Rating", icon: Star },
                 { value: categories.length.toString(), label: "Categories" },
                 { value: "24/7", label: "Support" },
               ].map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                <div key={index} className="text-center min-w-[80px]">
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-1">
                     <span className="stat-number">{stat.value}</span>
                     {stat.icon && (
-                      <stat.icon className="inline size-5 ml-1 text-yellow-500 fill-current" />
+                      <stat.icon className="inline size-4 ml-1 text-yellow-500 fill-current" />
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs md:text-sm text-muted-foreground">
                     {stat.label}
                   </div>
                 </div>
@@ -516,22 +585,38 @@ export default function Shop() {
 
       {/* Main Content */}
       <section className="relative">
-        <div className="container mx-auto px-4 py-8 space-y-12">
-          {/* Filters Bar */}
+        <div className="container mx-auto px-4 sm:px-6 py-6 md:py-8 lg:py-12 space-y-8 md:space-y-12">
+          {/* Top Bar */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-col md:flex-row justify-between items-center gap-6 p-6 rounded-2xl bg-gradient-to-r from-card to-card/50 backdrop-blur-sm border border-border/50 shadow-lg"
+            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 sm:p-6 rounded-xl md:rounded-2xl bg-gradient-to-r from-card to-card/50 backdrop-blur-sm border border-border/50 shadow-lg"
           >
-            <div>
-              <h2 className="text-2xl font-bold mb-2">
-                {selectedCategory === "All" ? "All Products" : selectedCategory}
-                <span className="ml-2 text-sm text-primary bg-primary/10 px-2 py-1 rounded">
-                  {sortedProducts.length} items
-                </span>
-              </h2>
-              <p className="text-muted-foreground">
+            <div className="w-full">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                <h2 className="text-xl sm:text-2xl font-bold">
+                  {selectedCategory === "All"
+                    ? "All Products"
+                    : selectedCategory}
+                  <span className="ml-2 text-xs sm:text-sm text-primary bg-primary/10 px-2 py-1 rounded">
+                    {sortedProducts.length} items
+                  </span>
+                </h2>
+
+                {/* Mobile Category Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 lg:hidden sm:self-start"
+                  onClick={() => setShowMobileMenu(true)}
+                >
+                  <Menu className="size-4" />
+                  Categories
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
                 Showing {sortedProducts.length} of {allProducts.length} products
                 {priceRange[0] > 0 || priceRange[1] < 2000
                   ? ` (Price: $${priceRange[0]} - $${priceRange[1]})`
@@ -539,11 +624,11 @@ export default function Shop() {
               </p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               {/* Mobile Filter Button */}
               <Button
                 variant="outline"
-                className="gap-2 lg:hidden"
+                className="gap-2 lg:hidden w-full sm:w-auto"
                 onClick={() => {
                   setShowFilters(true);
                   gsap.to(".mobile-filter-btn", {
@@ -557,11 +642,23 @@ export default function Shop() {
                 Filter
               </Button>
 
+              {/* Desktop Search - Hidden on mobile */}
+              <div className="hidden lg:block relative min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm"
+                />
+              </div>
+
               {/* Sort Dropdown */}
-              <div className="relative group">
+              <div className="relative group w-full sm:w-auto">
                 <Button
                   variant="outline"
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                   onClick={(e) => {
                     gsap.to(e.currentTarget, {
                       scale: 0.95,
@@ -573,16 +670,18 @@ export default function Shop() {
                   }}
                 >
                   Sort:{" "}
-                  {sortBy === "featured"
-                    ? "Featured"
-                    : sortBy === "price-low"
-                      ? "Price: Low to High"
-                      : sortBy === "price-high"
-                        ? "Price: High to Low"
-                        : sortBy === "name-asc"
-                          ? "Name: A to Z"
-                          : "Name: Z to A"}
-                  <ChevronDown className="size-4 transition-transform group-hover:rotate-180" />
+                  <span className="truncate max-w-[120px]">
+                    {sortBy === "featured"
+                      ? "Featured"
+                      : sortBy === "price-low"
+                        ? "Price: Low to High"
+                        : sortBy === "price-high"
+                          ? "Price: High to Low"
+                          : sortBy === "name-asc"
+                            ? "Name: A to Z"
+                            : "Name: Z to A"}
+                  </span>
+                  <ChevronDown className="size-4 flex-shrink-0 transition-transform group-hover:rotate-180" />
                 </Button>
 
                 {/* Sort Dropdown Menu */}
@@ -597,7 +696,7 @@ export default function Shop() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`w-full text-left px-4 py-3 hover:bg-secondary transition-colors ${
+                      className={`w-full text-left px-4 py-3 hover:bg-secondary transition-colors text-sm ${
                         sortBy === option.value
                           ? "text-primary bg-primary/10"
                           : ""
@@ -612,19 +711,33 @@ export default function Shop() {
               {/* Reset Filters Button */}
               <Button
                 variant="outline"
-                className="gap-2 reset-btn"
+                className="gap-2 reset-btn w-full sm:w-auto"
                 onClick={resetFilters}
               >
                 <RefreshCw className="size-4" />
-                Reset
+                <span className="hidden sm:inline">Reset</span>
               </Button>
             </div>
           </motion.div>
 
           {/* Grid Layout */}
-          <div className="grid lg:grid-cols-[280px_1fr] gap-8 lg:gap-12">
+          <div className="grid lg:grid-cols-[280px_1fr] gap-6 lg:gap-8 xl:gap-12">
             {/* Sidebar - Desktop Filters */}
-            <aside ref={sidebarRef} className="hidden lg:block space-y-8">
+            <aside ref={sidebarRef} className="hidden lg:block space-y-6">
+              {/* Search in Sidebar */}
+              <div className="p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 shadow-lg">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+
               {/* Categories */}
               <div className="p-6 rounded-2xl bg-card/50 backdrop-blur-sm border border-border/50 shadow-lg">
                 <div className="flex justify-between items-center mb-6 pb-3 border-b border-border">
@@ -655,9 +768,6 @@ export default function Shop() {
                             ? "bg-primary/10 text-primary font-bold border border-primary/20"
                             : "text-muted-foreground hover:text-primary hover:bg-primary/5 hover:pl-5"
                         }`}
-                        data-active={
-                          selectedCategory === item ? "true" : "false"
-                        }
                       >
                         {item}
                         {selectedCategory === item && (
@@ -753,6 +863,23 @@ export default function Shop() {
                   Active Filters
                 </h3>
                 <div className="space-y-3">
+                  {searchQuery && (
+                    <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
+                      <span className="text-sm">Search</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate max-w-[100px]">
+                          "{searchQuery}"
+                        </span>
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="p-1 hover:bg-primary/10 rounded flex-shrink-0"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedCategory !== "All" && (
                     <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
                       <span className="text-sm">Category</span>
@@ -799,7 +926,7 @@ export default function Shop() {
                     <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
                       <span className="text-sm">Sort By</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
+                        <span className="text-sm font-medium truncate max-w-[120px]">
                           {sortBy === "price-low"
                             ? "Price: Low to High"
                             : sortBy === "price-high"
@@ -822,18 +949,20 @@ export default function Shop() {
             </aside>
 
             {/* Product Grid */}
-            <div ref={gridRef} className="space-y-8">
+            <div ref={gridRef} className="space-y-6 md:space-y-8">
               {!isLoading && sortedProducts.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="text-center py-20"
+                  className="text-center py-12 md:py-20"
                 >
-                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-                    <Filter className="size-10 text-primary" />
+                  <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 mb-4 md:mb-6">
+                    <Filter className="size-8 md:size-10 text-primary" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-2">No Products Found</h3>
-                  <p className="text-muted-foreground mb-6">
+                  <h3 className="text-xl md:text-2xl font-bold mb-2">
+                    No Products Found
+                  </h3>
+                  <p className="text-muted-foreground mb-6 text-sm md:text-base">
                     No products found in "{selectedCategory}" category.
                     {priceRange[0] > 0 || priceRange[1] < 2000
                       ? ` (Price range: $${priceRange[0]} - $${priceRange[1]})`
@@ -853,17 +982,17 @@ export default function Shop() {
                     showTitle={false}
                   />
 
-                  {/* Load More Button with animation */}
+                  {/* Load More Button */}
                   {!isLoading && sortedProducts.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-center pt-8"
+                      className="flex justify-center pt-6 md:pt-8"
                     >
                       <Button
                         variant="outline"
                         size="lg"
-                        className="rounded-full px-8 gap-2 group border-primary/30 hover:border-primary hover:bg-primary/5"
+                        className="rounded-full px-6 md:px-8 gap-2 group border-primary/30 hover:border-primary hover:bg-primary/5 text-sm md:text-base"
                         onClick={(e) => {
                           gsap.to(e.currentTarget, {
                             scale: 0.95,
@@ -887,10 +1016,10 @@ export default function Shop() {
       </section>
 
       {/* Floating Action Button for Mobile Filters */}
-      <div className="fixed bottom-8 right-8 z-50 lg:hidden">
+      <div className="fixed bottom-6 right-6 z-40 lg:hidden">
         <Button
           size="lg"
-          className="rounded-full px-6 shadow-2xl hover:shadow-3xl bg-gradient-to-r from-primary to-accent group"
+          className="rounded-full p-4 shadow-2xl hover:shadow-3xl bg-gradient-to-r from-primary to-accent group"
           onClick={() => {
             setShowFilters(true);
             gsap.to(".fab-filter", {
@@ -900,8 +1029,7 @@ export default function Shop() {
             });
           }}
         >
-          <Filter className="size-5 mr-2 fab-filter group-hover:rotate-12 transition-transform" />
-          Filters
+          <Filter className="size-5 fab-filter group-hover:rotate-12 transition-transform" />
         </Button>
       </div>
     </div>
