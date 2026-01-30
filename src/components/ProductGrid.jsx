@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ShoppingCart, Heart, Check } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -16,41 +16,77 @@ if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
 }
 
+// Helper function to get image URL
+const getImageUrl = (image) => {
+    if (!image) return "/placeholder-image.jpg";
+    if (typeof image === "string") return image;
+    if (image.url) return image.url;
+    return "/placeholder-image.jpg";
+};
+
 // Simpler ProductCard without date calculation issues
 function ProductCard({ product }) {
     const { addToCart } = useCart();
     const [isAdded, setIsAdded] = useState(false);
     const cardRef = useRef(null);
 
-    const { contextSafe } = useGSAP(() => {
-        // Entry Animation
-        gsap.fromTo(cardRef.current,
-            { opacity: 0, y: 50 },
-            {
-                opacity: 1,
-                y: 0,
-                duration: 1,
-                ease: "power3.out",
-                scrollTrigger: {
-                    trigger: cardRef.current,
-                    start: "top 90%", // Start when top of card hits 90% of viewport
-                    toggleActions: "play none none reverse"
-                }
-            }
-        );
-    }, { scope: cardRef });
+    const { contextSafe } = useGSAP(
+        () => {
+            // Entry Animation
+            gsap.fromTo(
+                cardRef.current,
+                { opacity: 0, y: 50 },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    ease: "power3.out",
+                    scrollTrigger: {
+                        trigger: cardRef.current,
+                        start: "top 90%",
+                        toggleActions: "play none none reverse",
+                    },
+                },
+            );
+        },
+        { scope: cardRef },
+    );
 
     // Hover Effects
     const handleMouseEnter = contextSafe(() => {
-        gsap.to(".product-card", { y: -8, boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)", duration: 0.4, ease: "power2.out" });
-        gsap.to(".product-image", { scale: 1.1, duration: 0.8, ease: "power2.out" });
+        gsap.to(".product-card", {
+            y: -8,
+            boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)",
+            duration: 0.4,
+            ease: "power2.out",
+        });
+        gsap.to(".product-image", {
+            scale: 1.1,
+            duration: 0.8,
+            ease: "power2.out",
+        });
         gsap.to(".product-overlay", { opacity: 1, duration: 0.3 });
-        gsap.to(".product-actions", { x: 0, opacity: 1, duration: 0.4, ease: "back.out(1.7)" });
-        gsap.to(".add-to-cart-container", { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" });
+        gsap.to(".product-actions", {
+            x: 0,
+            opacity: 1,
+            duration: 0.4,
+            ease: "back.out(1.7)",
+        });
+        gsap.to(".add-to-cart-container", {
+            y: 0,
+            opacity: 1,
+            duration: 0.5,
+            ease: "power2.out",
+        });
     });
 
     const handleMouseLeave = contextSafe(() => {
-        gsap.to(".product-card", { y: 0, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)", duration: 0.4, ease: "power2.out" });
+        gsap.to(".product-card", {
+            y: 0,
+            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+            duration: 0.4,
+            ease: "power2.out",
+        });
         gsap.to(".product-image", { scale: 1, duration: 0.8, ease: "power2.out" });
         gsap.to(".product-overlay", { opacity: 0, duration: 0.3 });
         gsap.to(".product-actions", { x: 20, opacity: 0, duration: 0.3 });
@@ -65,9 +101,7 @@ function ProductCard({ product }) {
             id: product._id,
             name: product.title,
             price: product.price,
-            image: product.images && product.images.length > 0
-                ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop",
+            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg",
             category: product.category
         };
 
@@ -87,9 +121,7 @@ function ProductCard({ product }) {
                 {/* Image Container */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                     <Image
-                        src={product.images && product.images.length > 0
-                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                            : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
+                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg"}
                         alt={product.title}
                         fill
                         className="product-image object-cover"
@@ -103,7 +135,11 @@ function ProductCard({ product }) {
                     </div>
 
                     <div className="product-actions absolute top-4 right-4 flex flex-col gap-2 translate-x-5 opacity-0 z-10 pointer-events-auto">
-                        <Button size="icon" variant="secondary" className="rounded-full shadow-lg hover:bg-white hover:text-red-500 transition-colors">
+                        <Button
+                            size="icon"
+                            variant="secondary"
+                            className="rounded-full shadow-lg hover:bg-white hover:text-red-500 transition-colors"
+                        >
                             <Heart className="size-4" />
                         </Button>
                     </div>
@@ -114,8 +150,8 @@ function ProductCard({ product }) {
                             onClick={handleAddToCart}
                             variant="ghost"
                             className={`w-full rounded-xl shadow-xl backdrop-blur-md transition-all ${isAdded
-                                ? "bg-green-500 text-white hover:bg-green-600 hover:text-white"
-                                : "bg-white/90 text-black hover:bg-white hover:text-black dark:bg-black/90 dark:text-white dark:hover:bg-black dark:hover:text-white"
+                                    ? "bg-green-500 text-white hover:bg-green-600 hover:text-white"
+                                    : "bg-white/90 text-black hover:bg-white hover:text-black dark:bg-black/90 dark:text-white dark:hover:bg-black dark:hover:text-white"
                                 }`}
                         >
                             {isAdded ? (
@@ -184,7 +220,10 @@ export function ProductCardSkeleton() {
                     <div className="h-6 bg-muted/40 rounded-md w-1/4 animate-pulse" />
                     <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="size-3 bg-muted/30 rounded-full animate-pulse" />
+                            <div
+                                key={i}
+                                className="size-3 bg-muted/30 rounded-full animate-pulse"
+                            />
                         ))}
                     </div>
                 </div>
@@ -245,7 +284,6 @@ export function ProductGrid({
         };
     }, [fetchProducts, initialLoading]);
 
-    // FIXED: No cascading renders - handle retry properly
     const handleRetry = useCallback(() => {
         fetchProducts();
     }, [fetchProducts]);
@@ -381,7 +419,9 @@ export function ProductGridManual({
                                 <ShoppingCart className="size-8 text-muted-foreground" />
                             </div>
                             <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
-                            <p className="text-muted-foreground">Check back later for new products</p>
+                            <p className="text-muted-foreground">
+                                Check back later for new products
+                            </p>
                         </div>
                     ) : null}
                 </div>
@@ -391,7 +431,9 @@ export function ProductGridManual({
 }
 
 // Hook for fetching products (clean separation)
-export function useProducts(apiUrl = "https://backend-with-node-js-ueii.onrender.com/api/products") {
+export function useProducts(
+    apiUrl = "https://backend-with-node-js-ueii.onrender.com/api/products",
+) {
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);

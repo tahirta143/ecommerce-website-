@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
-import { ShoppingBag, Star, Truck, ShieldCheck, ArrowLeft, CheckCircle } from "lucide-react";
+import {
+    ShoppingBag,
+    Star,
+    Truck,
+    ShieldCheck,
+    ArrowLeft,
+    CheckCircle,
+} from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import gsap from "gsap";
@@ -9,6 +16,14 @@ import { useGSAP } from "@gsap/react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+
+// Helper function to get image URL
+const getImageUrl = (image) => {
+    if (!image) return "/placeholder.jpg";
+    if (typeof image === "string") return image;
+    if (image.url) return image.url;
+    return "/placeholder.jpg";
+};
 
 export default function ProductPage() {
     const params = useParams();
@@ -134,34 +149,36 @@ export default function ProductPage() {
             repeat: -1,
             yoyo: true,
             ease: "sine.inOut",
-            delay: 1
+            delay: 1,
         });
-
-    }, { scope: containerRef, dependencies: [product, loading] });
+    },
+        { scope: containerRef, dependencies: [product, loading] },
+    );
 
     // GSAP for tab changes
-    useGSAP(() => {
-        if (isAnimating) return;
+    useGSAP(
+        () => {
+            if (isAnimating || !tabContentRef.current) return;
 
-        const tl = gsap.timeline();
+            const tl = gsap.timeline();
 
-        tl.to(".tab-content-area", {
-            opacity: 0,
-            y: 20,
-            duration: 0.2,
-            ease: "power2.in"
-        })
-            .add(() => {
-                setIsAnimating(false);
+            tl.to(".tab-content-area", {
+                opacity: 0,
+                y: 20,
+                duration: 0.2,
+                ease: "power2.in"
             })
-            .to(".tab-content-area", {
-                opacity: 1,
-                y: 0,
-                duration: 0.4,
-                ease: "power3.out"
-            }, "+=0.1");
+                .add(() => {
+                    setIsAnimating(false);
+                })
+                .to(".tab-content-area", {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.4,
+                    ease: "power3.out"
+                }, "+=0.1");
 
-    }, { scope: containerRef, dependencies: [activeTab] });
+        }, { scope: containerRef, dependencies: [activeTab] });
 
     const handleAddToCart = () => {
         if (!product) return;
@@ -171,9 +188,7 @@ export default function ProductPage() {
             id: product._id,
             name: product.title,
             price: product.price,
-            image: product.images && product.images.length > 0
-                ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop",
+            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg",
             category: product.category
         };
 
@@ -189,7 +204,7 @@ export default function ProductPage() {
             ease: "power2.inOut",
             onComplete: () => {
                 setTimeout(() => setIsAdded(false), 2000);
-            }
+            },
         });
 
         // Floating cart icon animation
@@ -200,7 +215,7 @@ export default function ProductPage() {
                 duration: 0.2,
                 yoyo: true,
                 repeat: 1,
-                ease: "power2.inOut"
+                ease: "power2.inOut",
             });
         }
     };
@@ -213,11 +228,11 @@ export default function ProductPage() {
 Name: ${product.title}
 Price: $${product.price}
 Link: ${window.location.href}
-        
+    
 Please confirm my order.`;
 
         const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/923254828492?text=${encodedMessage}`, '_blank');
+        window.open(`https://wa.me/923254828492?text=${encodedMessage}`, "_blank");
 
         // WhatsApp button animation
         gsap.to("#whatsapp-btn", {
@@ -225,7 +240,7 @@ Please confirm my order.`;
             duration: 0.1,
             yoyo: true,
             repeat: 1,
-            ease: "power2.inOut"
+            ease: "power2.inOut",
         });
     };
 
@@ -268,9 +283,18 @@ Please confirm my order.`;
         );
     }
 
+    // Get main image URL
+    const mainImageUrl =
+        product.images && product.images.length > 0
+            ? getImageUrl(product.images[0])
+            : "/placeholder.jpg";
+
     return (
         <div ref={containerRef} className="container mx-auto px-4 py-8">
-            <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors">
+            <Link
+                href="/"
+                className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-8 transition-colors"
+            >
                 <ArrowLeft className="mr-2 size-4" /> Back to Shopping
             </Link>
 
@@ -278,9 +302,7 @@ Please confirm my order.`;
                 {/* Product Image */}
                 <div ref={imageRef} className="w-full aspect-square rounded-3xl overflow-hidden bg-muted border border-border relative shadow-2xl">
                     <Image
-                        src={product.images && product.images.length > 0
-                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                            : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
+                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg"}
                         alt={product.title}
                         fill
                         className="object-cover"
@@ -313,7 +335,8 @@ Please confirm my order.`;
                     </div>
 
                     <p className="text-muted-foreground leading-relaxed text-lg bg-card/50 p-6 rounded-2xl border border-border">
-                        {product.description || `Experience premium quality with our ${product.title.toLowerCase()}. Designed for modern lifestyles, this product combines aesthetics with functionality.`}
+                        {product.description ||
+                            `Experience premium quality with our ${product.title.toLowerCase()}. Designed for modern lifestyles, this product combines aesthetics with functionality.`}
                     </p>
 
                     <div className="space-y-4 pt-4 border-t border-border">
@@ -326,9 +349,19 @@ Please confirm my order.`;
                             <span>2-year commercial warranty included</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm p-3 bg-card/30 rounded-xl">
-                            <div className={`size-3 rounded-full ${product.stock > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                            <span className={product.stock > 0 ? 'text-green-600 font-medium' : 'text-red-600'}>
-                                {product.stock > 0 ? `✓ In Stock (${product.stock} available)` : '✗ Out of Stock'}
+                            <div
+                                className={`size-3 rounded-full ${product.stock > 0 ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                            ></div>
+                            <span
+                                className={
+                                    product.stock > 0
+                                        ? "text-green-600 font-medium"
+                                        : "text-red-600"
+                                }
+                            >
+                                {product.stock > 0
+                                    ? `✓ In Stock (${product.stock} available)`
+                                    : "✗ Out of Stock"}
                             </span>
                         </div>
                     </div>
@@ -469,9 +502,7 @@ Please confirm my order.`;
                                 <Link href={`/product/${relatedProduct._id}`}>
                                     <div className="relative aspect-[4/5] bg-muted rounded-2xl overflow-hidden mb-4 border border-border group-hover:border-primary transition-all duration-300">
                                         <Image
-                                            src={relatedProduct.images && relatedProduct.images.length > 0
-                                                ? (typeof relatedProduct.images[0] === 'string' ? relatedProduct.images[0] : relatedProduct.images[0].url)
-                                                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
+                                            src={relatedProduct.images && relatedProduct.images.length > 0 ? relatedProduct.images[0] : "/placeholder.jpg"}
                                             alt={relatedProduct.title}
                                             fill
                                             className="object-cover group-hover:scale-110 transition-transform duration-500"
