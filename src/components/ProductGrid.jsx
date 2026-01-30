@@ -32,6 +32,7 @@ function ProductCard({ product }) {
 
     const { contextSafe } = useGSAP(
         () => {
+            if (!cardRef.current) return;
             // Entry Animation
             gsap.fromTo(
                 cardRef.current,
@@ -52,27 +53,29 @@ function ProductCard({ product }) {
         { scope: cardRef },
     );
 
-    // Hover Effects
-    const handleMouseEnter = contextSafe(() => {
-        gsap.to(".product-card", {
+    // Hover Effects - Using event targets to avoid ref-render warnings
+    const handleMouseEnter = contextSafe((e) => {
+        const card = e.currentTarget;
+        const q = gsap.utils.selector(card);
+        gsap.to(card, {
             y: -8,
             boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)",
             duration: 0.4,
             ease: "power2.out",
         });
-        gsap.to(".product-image", {
+        gsap.to(q(".product-image"), {
             scale: 1.1,
             duration: 0.8,
             ease: "power2.out",
         });
-        gsap.to(".product-overlay", { opacity: 1, duration: 0.3 });
-        gsap.to(".product-actions", {
+        gsap.to(q(".product-overlay"), { opacity: 1, duration: 0.3 });
+        gsap.to(q(".product-actions"), {
             x: 0,
             opacity: 1,
             duration: 0.4,
             ease: "back.out(1.7)",
         });
-        gsap.to(".add-to-cart-container", {
+        gsap.to(q(".add-to-cart-container"), {
             y: 0,
             opacity: 1,
             duration: 0.5,
@@ -80,35 +83,53 @@ function ProductCard({ product }) {
         });
     });
 
-    const handleMouseLeave = contextSafe(() => {
-        gsap.to(".product-card", {
+    const handleMouseLeave = contextSafe((e) => {
+        const card = e.currentTarget;
+        const q = gsap.utils.selector(card);
+        gsap.to(card, {
             y: 0,
-            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
+            boxShadow: "none",
             duration: 0.4,
             ease: "power2.out",
         });
-        gsap.to(".product-image", { scale: 1, duration: 0.8, ease: "power2.out" });
-        gsap.to(".product-overlay", { opacity: 0, duration: 0.3 });
-        gsap.to(".product-actions", { x: 20, opacity: 0, duration: 0.3 });
-        gsap.to(".add-to-cart-container", { y: 20, opacity: 0, duration: 0.3 });
+        gsap.to(q(".product-image"), {
+            scale: 1,
+            duration: 0.6,
+            ease: "power2.out",
+        });
+        gsap.to(q(".product-overlay"), { opacity: 0, duration: 0.3 });
+        gsap.to(q(".product-actions"), {
+            x: 5,
+            opacity: 0,
+            duration: 0.3,
+            ease: "power2.in",
+        });
+        gsap.to(q(".add-to-cart-container"), {
+            y: 5,
+            opacity: 0,
+            duration: 0.3,
+            ease: "power2.in",
+        });
     });
 
     const handleAddToCart = (e) => {
         e.preventDefault();
-
-        // Transform API product to match cart structure
-        const cartProduct = {
-            id: product._id,
-            name: product.title,
-            price: product.price,
-            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg",
-            category: product.category
-        };
-
-        addToCart(cartProduct);
+        e.stopPropagation();
+        addToCart(product);
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 2000);
     };
+
+    // Robust data handling
+    const productId = product._id || product.id;
+    const productTitle = product.title || product.name || "Unnamed Product";
+    const productPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
+
+    // Get the first image URL for display
+    const imageUrl =
+        product.images && product.images.length > 0
+            ? getImageUrl(product.images[0])
+            : "/placeholder-image.jpg";
 
     return (
         <div
@@ -117,15 +138,19 @@ function ProductCard({ product }) {
             onMouseLeave={handleMouseLeave}
             className="product-card group relative bg-card rounded-3xl overflow-hidden shadow-sm border border-white/50 dark:border-white/5"
         >
-            <Link href={`/product/${product._id}`}>
+            <Link href={`/product/${productId}`}>
                 {/* Image Container */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                     <Image
-                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg"}
-                        alt={product.title}
+                        src={imageUrl}
+                        alt={productTitle}
                         fill
                         className="product-image object-cover"
                         sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                        priority={false}
+                        onError={(e) => {
+                            e.target.src = "/placeholder-image.jpg";
+                        }}
                     />
 
                     {/* Overlay Actions */}
@@ -150,8 +175,8 @@ function ProductCard({ product }) {
                             onClick={handleAddToCart}
                             variant="ghost"
                             className={`w-full rounded-xl shadow-xl backdrop-blur-md transition-all ${isAdded
-                                    ? "bg-green-500 text-white hover:bg-green-600 hover:text-white"
-                                    : "bg-white/90 text-black hover:bg-white hover:text-black dark:bg-black/90 dark:text-white dark:hover:bg-black dark:hover:text-white"
+                                ? "bg-green-500 text-white hover:bg-green-600 hover:text-white"
+                                : "bg-white/90 text-black hover:bg-white hover:text-black dark:bg-black/90 dark:text-white dark:hover:bg-black dark:hover:text-white"
                                 }`}
                         >
                             {isAdded ? (
@@ -177,17 +202,17 @@ function ProductCard({ product }) {
 
             {/* Content */}
             <div className="p-3 md:p-5">
-                <Link href={`/product/${product._id}`}>
+                <Link href={`/product/${productId}`}>
                     <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-primary transition-colors cursor-pointer line-clamp-1">
-                        {product.title}
+                        {productTitle}
                     </h3>
                 </Link>
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                    {product.category}
+                    {product.category || "General"}
                 </p>
                 <div className="flex items-center justify-between">
                     <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-                        ${product.price.toFixed(2)}
+                        ${productPrice.toFixed(2)}
                     </span>
                     <div className="flex text-amber-500 text-xs gap-0.5">
                         {"★".repeat(5)}
@@ -197,6 +222,7 @@ function ProductCard({ product }) {
         </div>
     );
 }
+
 
 // ProductCardSkeleton Component
 export function ProductCardSkeleton() {
@@ -232,144 +258,13 @@ export function ProductCardSkeleton() {
     );
 }
 
-// ProductGrid Component with API fetching - Fixed version
-export function ProductGrid({
-    title,
-    apiUrl = "https://backend-with-node-js-ueii.onrender.com/api/products",
-    showTitle = true,
-    initialLoading = true
-}) {
-    const [products, setProducts] = useState([]);
-    const [isLoading, setIsLoading] = useState(initialLoading);
-    const [error, setError] = useState(null);
-
-    // FIXED: Using useCallback for fetch function
-    const fetchProducts = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                setProducts(data.data || []);
-            } else {
-                throw new Error(data.message || 'Failed to fetch products');
-            }
-        } catch (err) {
-            console.error('Error fetching products:', err);
-            setError(err.message || 'Failed to load products');
-            setProducts([]);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [apiUrl]); // Add apiUrl as dependency
-
-    // FIXED: useEffect with proper dependency array
-    useEffect(() => {
-        let isMounted = true;
-
-        if (initialLoading && isMounted) {
-            fetchProducts();
-        }
-
-        return () => {
-            isMounted = false;
-        };
-    }, [fetchProducts, initialLoading]);
-
-    const handleRetry = useCallback(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    return (
-        <section className="py-12">
-            <div className="container mx-auto px-4">
-                {showTitle && title && (
-                    <motion.h2
-                        initial={{ opacity: 0, y: -20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-3xl font-bold mb-8 text-center"
-                    >
-                        {title}
-                    </motion.h2>
-                )}
-
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center mb-8 p-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
-                    >
-                        <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-                        <Button
-                            onClick={handleRetry}
-                            variant="outline"
-                            className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        >
-                            Retry Loading
-                        </Button>
-                    </motion.div>
-                )}
-
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
-                    {isLoading ? (
-                        Array.from({ length: 10 }).map((_, index) => (
-                            <ProductCardSkeleton key={`skeleton-${index}`} />
-                        ))
-                    ) : products.length > 0 ? (
-                        products.map((product) => (
-                            <ProductCard key={product._id} product={product} />
-                        ))
-                    ) : !error ? (
-                        <div className="col-span-full text-center py-12">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-                                <ShoppingCart className="size-8 text-muted-foreground" />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
-                            <p className="text-muted-foreground">Check back later for new products</p>
-                            <Button
-                                onClick={handleRetry}
-                                variant="ghost"
-                                className="mt-4"
-                            >
-                                Refresh
-                            </Button>
-                        </div>
-                    ) : null}
-                </div>
-
-                {/* Display product count when not loading and no error */}
-                {!isLoading && !error && products.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center mt-8 pt-6 border-t"
-                    >
-                        <p className="text-sm text-muted-foreground">
-                            Showing {products.length} product{products.length !== 1 ? 's' : ''}
-                        </p>
-                    </motion.div>
-                )}
-            </div>
-        </section>
-    );
-}
-
-// Alternative: ProductGrid with manual control (no auto-fetch)
+// ProductGrid Component with manual control (no auto-fetch)
 export function ProductGridManual({
     products = [],
     title,
     isLoading = false,
     error = null,
-    onRetry
+    onRetry,
 }) {
     return (
         <section className="py-12">
@@ -452,13 +347,22 @@ export function useProducts(
             const data = await response.json();
 
             if (data.success) {
-                setProducts(data.data || []);
+                // Process images to ensure they're in the correct format
+                const processedProducts = (data.data || []).map((product) => ({
+                    ...product,
+                    images:
+                        product.images?.map((img) => ({
+                            ...img,
+                            url: typeof img === "string" ? img : img.url,
+                        })) || [],
+                }));
+                setProducts(processedProducts);
             } else {
-                throw new Error(data.message || 'Failed to fetch products');
+                throw new Error(data.message || "Failed to fetch products");
             }
         } catch (err) {
-            console.error('Error fetching products:', err);
-            setError(err.message || 'Failed to load products');
+            console.error("Error fetching products:", err);
+            setError(err.message || "Failed to load products");
             setProducts([]);
         } finally {
             setIsLoading(false);
@@ -488,3 +392,21 @@ export function ProductsPage() {
         </div>
     );
 }
+
+// Main dynamic ProductGrid component - AUTO FETCHES FROM API
+export function ProductGrid({ title }) {
+    const { products, isLoading, error, refetch } = useProducts();
+
+    return (
+        <ProductGridManual
+            products={products}
+            title={title}
+            isLoading={isLoading}
+            error={error}
+            onRetry={refetch}
+        />
+    );
+}
+
+// DEFAULT EXPORT - CRITICAL FOR IMPORT IN page.js
+export default ProductGrid;
