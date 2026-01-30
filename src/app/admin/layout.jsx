@@ -2,51 +2,81 @@
 
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, ShoppingBag, PlusCircle, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, ClipboardList, ShoppingBag, PlusCircle, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import Image from "next/image";
 
 export default function AdminLayout({ children }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [adminData, setAdminData] = useState({
+        isAuthenticated: false,
+        isLoading: true,
+        user: null
+    });
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
     useEffect(() => {
-        // Simple mock authentication check
-        const auth = localStorage.getItem("admin_auth");
-        if (auth === "true") {
-            setIsAuthenticated(true);
-        } else if (pathname !== "/admin/login") {
+        const auth = localStorage.getItem("admin_auth") === "true";
+        const storedUser = localStorage.getItem("admin_user");
+        let user = null;
+
+        if (storedUser) {
+            try {
+                user = JSON.parse(storedUser);
+            } catch (e) {
+                console.error("Failed to parse admin user");
+            }
+        }
+
+        setAdminData({
+            isAuthenticated: auth,
+            isLoading: false,
+            user: user
+        });
+
+        if (!auth && pathname !== "/admin/login" && pathname !== "/admin/signup") {
             router.push("/admin/login");
         }
-        setIsLoading(false);
     }, [pathname, router]);
 
-    if (isLoading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+    if (adminData.isLoading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
-    // If on login page, just show children without the sidebar/layout
-    if (pathname === "/admin/login") return <>{children}</>;
+    // If on login or signup page, just show children without the sidebar/layout
+    if (pathname === "/admin/login" || pathname === "/admin/signup") return <>{children}</>;
 
     // If not authenticated, we're redirecting
-    if (!isAuthenticated) return null;
+    if (!adminData.isAuthenticated) return null;
 
     const handleLogout = () => {
         localStorage.removeItem("admin_auth");
-        setIsAuthenticated(false);
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_user");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setAdminData({ isAuthenticated: false, isLoading: false, user: null });
         router.push("/admin/login");
     };
 
     const navItems = [
         { name: "Dashboard", href: "/admin", icon: <LayoutDashboard className="size-5" /> },
+        { name: "Orders", href: "/admin/orders", icon: <ClipboardList className="size-5" /> },
         { name: "All Products", href: "/admin/products", icon: <ShoppingBag className="size-5" /> },
         { name: "Add Product", href: "/admin/add-product", icon: <PlusCircle className="size-5" /> },
     ];
 
     return (
         <div className="min-h-screen bg-zinc-50 flex">
+            {/* Mobile Sidebar Backdrop */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <aside className={cn(
                 "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-zinc-200 transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0",
@@ -69,6 +99,7 @@ export default function AdminLayout({ children }) {
                                 <Link
                                     key={item.href}
                                     href={item.href}
+                                    onClick={() => setIsSidebarOpen(false)}
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
                                         isActive
@@ -109,10 +140,10 @@ export default function AdminLayout({ children }) {
                         {navItems.find(item => item.href === pathname)?.name || "Admin"}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <Link href="/admin/profile" className="flex items-center gap-4 hover:bg-zinc-50 p-2 rounded-xl transition-colors">
                         <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold">Admin User</div>
-                            <div className="text-xs text-zinc-500">Super Admin</div>
+                            <div className="text-sm font-bold">{adminData.user?.name || "Admin User"}</div>
+                            <div className="text-xs text-zinc-500">{adminData.user?.role || "Super Admin"}</div>
                         </div>
                         <div className="size-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm overflow-hidden">
                             <Image
@@ -122,7 +153,7 @@ export default function AdminLayout({ children }) {
                                 height={100}
                             />
                         </div>
-                    </div>
+                    </Link>
                 </header>
 
                 <div className="p-8">
@@ -132,5 +163,3 @@ export default function AdminLayout({ children }) {
         </div>
     );
 }
-
-import Image from "next/image";

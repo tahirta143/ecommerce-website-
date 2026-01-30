@@ -3,14 +3,17 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { LogIn, Lock, User, Eye, EyeOff } from "lucide-react";
+import { LogIn, Lock, User, Mail, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
-export default function AdminLogin() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+export default function AdminSignUp() {
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        password: ""
+    });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -20,66 +23,54 @@ export default function AdminLogin() {
     useGSAP(() => {
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-        tl.fromTo(".login-card",
+        tl.fromTo(".signup-card",
             { opacity: 0, y: 30, scale: 0.95 },
             { opacity: 1, y: 0, scale: 1, duration: 1 }
         )
-            .fromTo(".login-field",
+            .fromTo(".signup-field",
                 { opacity: 0, x: -20 },
                 { opacity: 1, x: 0, stagger: 0.1, duration: 0.6 },
                 "-=0.5"
             )
-            .fromTo(".login-button",
+            .fromTo(".signup-button",
                 { opacity: 0, y: 20 },
                 { opacity: 1, y: 0, duration: 0.6 },
                 "-=0.4"
             );
     }, { scope: containerRef });
 
-    const handleLogin = async (e) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSignUp = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError("");
 
         try {
-            const response = await fetch("https://backend-with-node-js-ueii.onrender.com/api/admin/login", {
+            const response = await fetch("https://backend-with-node-js-ueii.onrender.com/api/admin/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    email: email,
-                    password: password,
+                    name: formData.name,
+                    email: formData.email,
+                    password: formData.password
                 }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || "Login failed");
+                throw new Error(data.message || "Registration failed");
             }
 
-            // Store authentication data
-            localStorage.setItem("admin_auth", "true");
-
-            // Check both standard and wrapped token/admin patterns
-            const token = data.token || (data.data && data.data.token);
-            const admin = data.admin || (data.data && data.data.admin);
-
-            if (token) {
-                localStorage.setItem("admin_token", token);
-                // Also store as generic token for compatibility
-                localStorage.setItem("token", token);
-            }
-            if (admin) {
-                localStorage.setItem("admin_user", JSON.stringify(admin));
-                // Also store as generic user
-                localStorage.setItem("user", JSON.stringify(admin));
-            }
-
-            router.push("/admin");
+            // Successfully registered, redirect to login page
+            router.push("/admin/login");
         } catch (error) {
-            setError(error.message || "Invalid credentials. Try admin@gmail.com / admin123");
+            setError(error.message || "Failed to create account. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -88,43 +79,61 @@ export default function AdminLogin() {
     return (
         <div ref={containerRef} className="min-h-screen bg-zinc-50 flex items-center justify-center p-4 overflow-hidden">
             <div className="w-full max-w-md">
-                <div className="text-center mb-8 login-card">
+                <div className="text-center mb-8 signup-card">
                     <Link href="/" className="inline-flex items-center gap-2 mb-6 hover:scale-105 transition-transform">
                         <div className="size-10 rounded-xl bg-black flex items-center justify-center text-white font-bold text-xl shadow-xl">
                             L
                         </div>
                         <span className="text-2xl font-bold tracking-tight">LuxeMarket</span>
                     </Link>
-                    <h1 className="text-2xl font-bold text-zinc-900">Admin Dashboard</h1>
-                    <p className="text-zinc-500 mt-2">Sign in to manage your store</p>
+                    <h1 className="text-2xl font-bold text-zinc-900">Create Admin Account</h1>
+                    <p className="text-zinc-500 mt-2">Join the administrative team</p>
                 </div>
 
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-100 login-card">
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div className="space-y-2 login-field">
-                            <label className="text-sm font-semibold text-zinc-700 ml-1">Email Address</label>
+                <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-zinc-100 signup-card">
+                    <form onSubmit={handleSignUp} className="space-y-5">
+                        <div className="space-y-2 signup-field">
+                            <label className="text-sm font-semibold text-zinc-700 ml-1">Full Name</label>
                             <div className="relative">
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-400" />
                                 <input
-                                    type="email"
+                                    type="text"
+                                    name="name"
                                     required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="w-full h-14 pl-12 pr-4 rounded-2xl bg-zinc-50 border border-zinc-200 focus:border-black focus:ring-0 outline-none transition-all placeholder:text-zinc-400"
+                                    placeholder="John Doe"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 signup-field">
+                            <label className="text-sm font-semibold text-zinc-700 ml-1">Email Address</label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-400" />
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
                                     className="w-full h-14 pl-12 pr-4 rounded-2xl bg-zinc-50 border border-zinc-200 focus:border-black focus:ring-0 outline-none transition-all placeholder:text-zinc-400"
                                     placeholder="admin@luxemarket.com"
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2 login-field">
+                        <div className="space-y-2 signup-field">
                             <label className="text-sm font-semibold text-zinc-700 ml-1">Password</label>
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-zinc-400" />
                                 <input
                                     type={showPassword ? "text" : "password"}
+                                    name="password"
                                     required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    value={formData.password}
+                                    onChange={handleChange}
                                     className="w-full h-14 pl-12 pr-12 rounded-2xl bg-zinc-50 border border-zinc-200 focus:border-black focus:ring-0 outline-none transition-all placeholder:text-zinc-400"
                                     placeholder="••••••••"
                                 />
@@ -144,30 +153,31 @@ export default function AdminLogin() {
                             </div>
                         )}
 
-                        <div className="login-button">
+                        <div className="signup-button pt-2">
                             <Button
                                 type="submit"
                                 className="w-full h-14 rounded-2xl bg-black text-white hover:bg-zinc-800 text-lg font-bold shadow-lg shadow-black/20"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Signing in..." : (
+                                {isLoading ? "Creating account..." : (
                                     <span className="flex items-center gap-2">
-                                        Sign In <LogIn className="size-5" />
+                                        Create Account <LogIn className="size-5" />
                                     </span>
                                 )}
                             </Button>
                         </div>
                     </form>
-                </div>
 
-                <div className="text-center mt-8 text-sm text-zinc-500 login-card">
-                    <p className="mb-2">Protected by LuxeMarket Admin Security</p>
-                    <p>
-                        Don&apos;t have an account?{" "}
-                        <Link href="/admin/signup" className="text-black font-bold hover:underline">
-                            Sign Up
+                    <p className="text-center mt-6 text-sm text-zinc-500 signup-field">
+                        Already have an account?{" "}
+                        <Link href="/admin/login" className="text-black font-bold hover:underline">
+                            Sign In
                         </Link>
                     </p>
+                </div>
+
+                <div className="text-center mt-8 text-sm text-zinc-500 signup-card">
+                    <p>Protected by LuxeMarket Admin Security</p>
                 </div>
             </div>
         </div>

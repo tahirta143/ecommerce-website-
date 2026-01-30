@@ -59,16 +59,18 @@ function ProductCard({ product }) {
 
     const handleAddToCart = (e) => {
         e.preventDefault();
-        
+
         // Transform API product to match cart structure
         const cartProduct = {
             id: product._id,
             name: product.title,
             price: product.price,
-            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg",
+            image: product.images && product.images.length > 0
+                ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop",
             category: product.category
         };
-        
+
         addToCart(cartProduct);
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 2000);
@@ -85,7 +87,9 @@ function ProductCard({ product }) {
                 {/* Image Container */}
                 <div className="relative aspect-[4/5] overflow-hidden bg-muted">
                     <Image
-                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder-image.jpg"}
+                        src={product.images && product.images.length > 0
+                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                            : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
                         alt={product.title}
                         fill
                         className="product-image object-cover"
@@ -190,11 +194,11 @@ export function ProductCardSkeleton() {
 }
 
 // ProductGrid Component with API fetching - Fixed version
-export function ProductGrid({ 
-    title, 
+export function ProductGrid({
+    title,
     apiUrl = "https://backend-with-node-js-ueii.onrender.com/api/products",
     showTitle = true,
-    initialLoading = true 
+    initialLoading = true
 }) {
     const [products, setProducts] = useState([]);
     const [isLoading, setIsLoading] = useState(initialLoading);
@@ -204,16 +208,16 @@ export function ProductGrid({
     const fetchProducts = useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
             const response = await fetch(apiUrl);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 setProducts(data.data || []);
             } else {
@@ -231,7 +235,7 @@ export function ProductGrid({
     // FIXED: useEffect with proper dependency array
     useEffect(() => {
         let isMounted = true;
-        
+
         if (initialLoading && isMounted) {
             fetchProducts();
         }
@@ -261,14 +265,14 @@ export function ProductGrid({
                 )}
 
                 {error && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="text-center mb-8 p-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
                     >
                         <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-                        <Button 
-                            onClick={handleRetry} 
+                        <Button
+                            onClick={handleRetry}
                             variant="outline"
                             className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
@@ -293,9 +297,9 @@ export function ProductGrid({
                             </div>
                             <h3 className="text-xl font-semibold mb-2">No Products Found</h3>
                             <p className="text-muted-foreground">Check back later for new products</p>
-                            <Button 
-                                onClick={handleRetry} 
-                                variant="ghost" 
+                            <Button
+                                onClick={handleRetry}
+                                variant="ghost"
                                 className="mt-4"
                             >
                                 Refresh
@@ -306,7 +310,7 @@ export function ProductGrid({
 
                 {/* Display product count when not loading and no error */}
                 {!isLoading && !error && products.length > 0 && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="text-center mt-8 pt-6 border-t"
@@ -322,9 +326,9 @@ export function ProductGrid({
 }
 
 // Alternative: ProductGrid with manual control (no auto-fetch)
-export function ProductGridManual({ 
-    products = [], 
-    title, 
+export function ProductGridManual({
+    products = [],
+    title,
     isLoading = false,
     error = null,
     onRetry
@@ -344,15 +348,15 @@ export function ProductGridManual({
                 )}
 
                 {error && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="text-center mb-8 p-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
                     >
                         <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
                         {onRetry && (
-                            <Button 
-                                onClick={onRetry} 
+                            <Button
+                                onClick={onRetry}
                                 variant="outline"
                                 className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                             >
@@ -395,16 +399,16 @@ export function useProducts(apiUrl = "https://backend-with-node-js-ueii.onrender
     const fetchProducts = useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        
+
         try {
             const response = await fetch(apiUrl);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 setProducts(data.data || []);
             } else {
@@ -429,10 +433,10 @@ export function useProducts(apiUrl = "https://backend-with-node-js-ueii.onrender
 // Example usage in a parent component:
 export function ProductsPage() {
     const { products, isLoading, error, refetch } = useProducts();
-    
+
     return (
         <div>
-            <ProductGridManual 
+            <ProductGridManual
                 products={products}
                 title="Our Products"
                 isLoading={isLoading}

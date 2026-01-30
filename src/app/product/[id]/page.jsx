@@ -14,13 +14,13 @@ export default function ProductPage() {
     const params = useParams();
     const id = params?.id;
     const { addToCart } = useCart();
-    
+
     const containerRef = useRef(null);
     const imageRef = useRef(null);
     const detailsRef = useRef(null);
     const [activeTab, setActiveTab] = useState("Description");
     const [isAdded, setIsAdded] = useState(false);
-    
+
     // State for API data
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -36,25 +36,25 @@ export default function ProductPage() {
             try {
                 setLoading(true);
                 setError(null);
-                
+
                 // Fetch single product
                 const response = await fetch(`https://backend-with-node-js-ueii.onrender.com/api/products/${id}`);
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to fetch product: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 // Check if API returned success and has data
                 if (data.success && data.data) {
                     setProduct(data.data);
-                    
+
                     // Fetch all products to find related ones
                     const allProductsResponse = await fetch('https://backend-with-node-js-ueii.onrender.com/api/products');
                     if (allProductsResponse.ok) {
                         const allProductsData = await allProductsResponse.json();
-                        
+
                         if (allProductsData.success && allProductsData.data) {
                             // Filter products with same category AND different ID
                             // Take only the first 4 related products
@@ -67,7 +67,7 @@ export default function ProductPage() {
                 } else {
                     throw new Error('Product not found in API response');
                 }
-                
+
             } catch (err) {
                 setError(err.message);
                 console.error("Error fetching product:", err);
@@ -82,28 +82,28 @@ export default function ProductPage() {
     // GSAP Animation for product details
     useGSAP(() => {
         if (!product || loading) return;
-        
+
         // Reset elements to initial state
         gsap.set([imageRef.current, detailsRef.current], { clearProps: "all" });
-        
+
         const tl = gsap.timeline({
-            defaults: { 
+            defaults: {
                 ease: "power3.out",
-                duration: 0.8 
+                duration: 0.8
             }
         });
 
         // Image animation
         tl.fromTo(imageRef.current,
-            { 
-                opacity: 0, 
-                x: -80, 
+            {
+                opacity: 0,
+                x: -80,
                 scale: 0.8,
                 rotation: -5
             },
-            { 
-                opacity: 1, 
-                x: 0, 
+            {
+                opacity: 1,
+                x: 0,
                 scale: 1,
                 rotation: 0,
                 duration: 1.2
@@ -112,13 +112,13 @@ export default function ProductPage() {
 
         // Details animation with staggered children
         tl.fromTo(detailsRef.current.children,
-            { 
-                opacity: 0, 
+            {
+                opacity: 0,
                 y: 30,
                 filter: "blur(10px)"
             },
-            { 
-                opacity: 1, 
+            {
+                opacity: 1,
                 y: 0,
                 filter: "blur(0px)",
                 stagger: 0.15,
@@ -144,37 +144,39 @@ export default function ProductPage() {
         if (isAnimating) return;
 
         const tl = gsap.timeline();
-        
+
         tl.to(".tab-content-area", {
             opacity: 0,
             y: 20,
             duration: 0.2,
             ease: "power2.in"
         })
-        .add(() => {
-            setIsAnimating(false);
-        })
-        .to(".tab-content-area", {
-            opacity: 1,
-            y: 0,
-            duration: 0.4,
-            ease: "power3.out"
-        }, "+=0.1");
+            .add(() => {
+                setIsAnimating(false);
+            })
+            .to(".tab-content-area", {
+                opacity: 1,
+                y: 0,
+                duration: 0.4,
+                ease: "power3.out"
+            }, "+=0.1");
 
     }, { scope: containerRef, dependencies: [activeTab] });
 
     const handleAddToCart = () => {
         if (!product) return;
-        
+
         // Transform API product to match cart structure
         const cartProduct = {
             id: product._id,
             name: product.title,
             price: product.price,
-            image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg",
+            image: product.images && product.images.length > 0
+                ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop",
             category: product.category
         };
-        
+
         addToCart(cartProduct);
         setIsAdded(true);
 
@@ -205,7 +207,7 @@ export default function ProductPage() {
 
     const handleWhatsAppOrder = () => {
         if (!product) return;
-        
+
         const message = `Hi, I want to order this product:
         
 Name: ${product.title}
@@ -229,7 +231,7 @@ Please confirm my order.`;
 
     const handleTabChange = (tab) => {
         if (tab === activeTab || isAnimating) return;
-        
+
         setIsAnimating(true);
         setActiveTab(tab);
     };
@@ -276,7 +278,9 @@ Please confirm my order.`;
                 {/* Product Image */}
                 <div ref={imageRef} className="w-full aspect-square rounded-3xl overflow-hidden bg-muted border border-border relative shadow-2xl">
                     <Image
-                        src={product.images && product.images.length > 0 ? product.images[0] : "/placeholder.jpg"}
+                        src={product.images && product.images.length > 0
+                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                            : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
                         alt={product.title}
                         fill
                         className="object-cover"
@@ -333,10 +337,10 @@ Please confirm my order.`;
                         <Button
                             id="add-cart-btn"
                             size="lg"
-                            className={`flex-1 text-lg h-14 rounded-xl transition-all shadow-lg hover:shadow-xl ${isAdded 
-                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700" 
+                            className={`flex-1 text-lg h-14 rounded-xl transition-all shadow-lg hover:shadow-xl ${isAdded
+                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700"
                                 : "bg-gradient-to-r from-zinc-100 to-zinc-200 text-foreground hover:from-zinc-200 hover:to-zinc-300 dark:from-zinc-900 dark:to-zinc-800 dark:text-white"
-                            }`}
+                                }`}
                             onClick={handleAddToCart}
                             disabled={product.stock <= 0}
                         >
@@ -385,10 +389,10 @@ Please confirm my order.`;
                         <button
                             key={tab}
                             onClick={() => handleTabChange(tab)}
-                            className={`px-8 py-4 text-lg font-medium transition-all border-b-2 -mb-[2px] whitespace-nowrap ${activeTab === tab 
-                                ? "border-primary text-primary" 
+                            className={`px-8 py-4 text-lg font-medium transition-all border-b-2 -mb-[2px] whitespace-nowrap ${activeTab === tab
+                                ? "border-primary text-primary"
                                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                            }`}
+                                }`}
                         >
                             {tab}
                         </button>
@@ -443,17 +447,17 @@ Please confirm my order.`;
                     <h2 className="text-3xl font-bold mb-12">You might also like</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {relatedProducts.map((relatedProduct, index) => (
-                            <div 
-                                key={relatedProduct._id} 
+                            <div
+                                key={relatedProduct._id}
                                 className="group"
                                 ref={el => {
                                     // Add staggered animation for related products
                                     if (el) {
                                         gsap.fromTo(el,
                                             { opacity: 0, y: 30 },
-                                            { 
-                                                opacity: 1, 
-                                                y: 0, 
+                                            {
+                                                opacity: 1,
+                                                y: 0,
                                                 duration: 0.6,
                                                 delay: index * 0.1,
                                                 ease: "power3.out"
@@ -465,7 +469,9 @@ Please confirm my order.`;
                                 <Link href={`/product/${relatedProduct._id}`}>
                                     <div className="relative aspect-[4/5] bg-muted rounded-2xl overflow-hidden mb-4 border border-border group-hover:border-primary transition-all duration-300">
                                         <Image
-                                            src={relatedProduct.images && relatedProduct.images.length > 0 ? relatedProduct.images[0] : "/placeholder.jpg"}
+                                            src={relatedProduct.images && relatedProduct.images.length > 0
+                                                ? (typeof relatedProduct.images[0] === 'string' ? relatedProduct.images[0] : relatedProduct.images[0].url)
+                                                : "https://images.unsplash.com/photo-1560393464-5c69a73c5770?q=80&w=800&auto=format&fit=crop"}
                                             alt={relatedProduct.title}
                                             fill
                                             className="object-cover group-hover:scale-110 transition-transform duration-500"

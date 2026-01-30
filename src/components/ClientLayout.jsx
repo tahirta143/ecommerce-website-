@@ -9,7 +9,7 @@ import { CartProvider } from "@/context/CartContext";
 
 export default function ClientLayout({ children }) {
     const pathname = usePathname();
-    const isAuthPage = pathname === "/signin";
+    const isAuthPage = pathname === "/signin" || pathname === "/admin/login" || pathname === "/admin/signup";
 
     return (
         <CartProvider>
