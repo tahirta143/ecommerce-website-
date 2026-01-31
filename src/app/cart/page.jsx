@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, X } from "lucide-react";
@@ -8,24 +8,55 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useRouter } from "next/navigation";
+
 export default function CartPage() {
     const { cartItems, updateQuantity, removeFromCart, totalPrice, clearCart } = useCart();
     const [showReceipt, setShowReceipt] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return (
+            <div className="container mx-auto px-4 py-24 text-center space-y-6 min-h-[60vh] flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+                <p className="text-zinc-500 font-medium">Loading your cart...</p>
+            </div>
+        );
+    }
 
     const handleCheckoutInit = () => {
+        const token = localStorage.getItem("token");
+        const isAuthenticated = token && token !== "undefined" && token !== "null";
+
+        if (!isAuthenticated) {
+            router.push("/signin");
+            return;
+        }
+
         if (cartItems.length > 0) {
             setShowReceipt(true);
         }
+    };
+
+    // Helper to get safe image src
+    const getSafeImage = (image) => {
+        if (!image || image === "") return "/placeholder-image.jpg";
+        return image;
     };
 
     const handleWhatsAppOrder = () => {
         let message = "Hi, I would like to place an order:\n\n";
 
         cartItems.forEach(item => {
-            message += `- ${item.name} (x${item.quantity}): $${(item.price * item.quantity).toFixed(2)}\n`;
+            message += `- ${item.name} (x${item.quantity}): Rs. ${formatPrice(item.price * item.quantity)}\n`;
         });
 
-        message += `\nTotal Amount: $${totalPrice.toFixed(2)}`;
+        message += `\nTotal Amount: Rs. ${formatPrice(totalPrice)}`;
         message += `\n\nPlease confirm my order.`;
 
         const encodedMessage = encodeURIComponent(message);
@@ -38,6 +69,12 @@ export default function CartPage() {
 
     const closeReceipt = () => {
         setShowReceipt(false);
+    };
+
+    // Safe price formatting
+    const formatPrice = (price) => {
+        const p = parseFloat(price);
+        return isNaN(p) ? "0.00" : p.toFixed(2);
     };
 
     if (cartItems.length === 0 && !showReceipt) {
@@ -78,13 +115,18 @@ export default function CartPage() {
                                 className="flex gap-6 p-6 rounded-[2.5rem] bg-white border border-zinc-100 shadow-sm hover:shadow-md transition-shadow relative group"
                             >
                                 <div className="relative w-32 h-32 rounded-[2rem] overflow-hidden bg-zinc-50 shrink-0 border border-zinc-100 shadow-inner">
-                                    <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <Image
+                                        src={getSafeImage(item.image)}
+                                        alt={item.name || "Product Image"}
+                                        fill
+                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                    />
                                 </div>
                                 <div className="flex-1 flex flex-col justify-between py-2">
                                     <div>
                                         <div className="flex justify-between items-start mb-1">
                                             <h3 className="font-bold text-xl text-zinc-900 leading-tight">{item.name}</h3>
-                                            <p className="font-black text-xl text-black">${(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="font-black text-xl text-black">Rs. {formatPrice(item.price * item.quantity)}</p>
                                         </div>
                                         <p className="text-sm font-semibold text-zinc-400 uppercase tracking-widest">{item.category}</p>
                                     </div>
@@ -112,7 +154,7 @@ export default function CartPage() {
                         <div className="space-y-5">
                             <div className="flex justify-between text-zinc-500 font-medium">
                                 <span>Subtotal</span>
-                                <span className="text-zinc-900 font-bold">${totalPrice.toFixed(2)}</span>
+                                <span className="text-zinc-900 font-bold">Rs. {formatPrice(totalPrice)}</span>
                             </div>
                             <div className="flex justify-between text-zinc-500 font-medium">
                                 <span>Shipping</span>
@@ -120,12 +162,12 @@ export default function CartPage() {
                             </div>
                             <div className="flex justify-between text-zinc-500 font-medium">
                                 <span>Estimated Tax</span>
-                                <span className="text-zinc-900 font-bold">$0.00</span>
+                                <span className="text-zinc-900 font-bold">Rs. 0.00</span>
                             </div>
                             <div className="h-px bg-zinc-100 my-4" />
                             <div className="flex justify-between items-end">
                                 <span className="text-zinc-900 font-bold">Total Amount</span>
-                                <span className="font-black text-3xl text-black tracking-tighter">${totalPrice.toFixed(2)}</span>
+                                <span className="font-black text-3xl text-black tracking-tighter">Rs. {formatPrice(totalPrice)}</span>
                             </div>
                         </div>
                         <Button
@@ -183,14 +225,20 @@ export default function CartPage() {
                                         className="flex items-center gap-4 bg-zinc-50 p-3 rounded-2xl border border-zinc-100"
                                     >
                                         <div className="size-14 rounded-xl overflow-hidden bg-white shrink-0 border border-zinc-200">
-                                            <Image src={item.image} alt={item.name} width={64} height={64} className="object-cover w-full h-full" />
+                                            <Image
+                                                src={getSafeImage(item.image)}
+                                                alt={item.name || "Product Image"}
+                                                width={64}
+                                                height={64}
+                                                className="object-cover w-full h-full"
+                                            />
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-bold text-zinc-900 text-sm line-clamp-1">{item.name}</h4>
-                                            <p className="text-xs text-zinc-400 font-bold">{item.quantity} × ${item.price.toFixed(2)}</p>
+                                            <p className="text-xs text-zinc-400 font-bold">{item.quantity} × Rs. {formatPrice(item.price)}</p>
                                         </div>
                                         <div className="font-black text-zinc-900 text-sm">
-                                            ${(item.price * item.quantity).toFixed(2)}
+                                            Rs. {formatPrice(item.price * item.quantity)}
                                         </div>
                                     </motion.div>
                                 ))}
@@ -198,7 +246,7 @@ export default function CartPage() {
                                 <div className="pt-4 border-t border-dashed border-zinc-200 space-y-2">
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-zinc-500 font-medium">Subtotal</span>
-                                        <span className="font-bold text-zinc-900">${totalPrice.toFixed(2)}</span>
+                                        <span className="font-bold text-zinc-900">Rs. {formatPrice(totalPrice)}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-zinc-500 font-medium">Shipping</span>
@@ -206,7 +254,7 @@ export default function CartPage() {
                                     </div>
                                     <div className="flex justify-between items-center text-xl mt-4 pt-4 border-t border-zinc-100">
                                         <span className="font-black text-zinc-900">Total</span>
-                                        <span className="font-black text-black">${totalPrice.toFixed(2)}</span>
+                                        <span className="font-black text-black">Rs. {formatPrice(totalPrice)}</span>
                                     </div>
                                 </div>
                             </div>

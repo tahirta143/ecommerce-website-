@@ -13,7 +13,7 @@ import { useRef, useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -29,6 +29,7 @@ export default function ProductPage() {
     const params = useParams();
     const id = params?.id;
     const { addToCart } = useCart();
+    const router = useRouter();
 
     const containerRef = useRef(null);
     const imageRef = useRef(null);
@@ -199,6 +200,15 @@ export default function ProductPage() {
     const handleAddToCart = () => {
         if (!product) return;
 
+        // Auth Wall Check
+        const token = localStorage.getItem("token");
+        const isAuthenticated = token && token !== "undefined" && token !== "null";
+
+        if (!isAuthenticated) {
+            router.push("/signin");
+            return;
+        }
+
         // Get the first image URL properly
         const firstImage =
             product.images && product.images.length > 0
@@ -245,10 +255,19 @@ export default function ProductPage() {
     const handleWhatsAppOrder = () => {
         if (!product) return;
 
+        // Auth Wall Check
+        const token = localStorage.getItem("token");
+        const isAuthenticated = token && token !== "undefined" && token !== "null";
+
+        if (!isAuthenticated) {
+            router.push("/signin");
+            return;
+        }
+
         const message = `Hi, I want to order this product:
     
 Name: ${product.title}
-Price: $${product.price}
+Price: Rs. ${product.price}
 Link: ${window.location.href}
     
 Please confirm my order.`;
@@ -333,6 +352,7 @@ Please confirm my order.`;
                         className="object-cover"
                         priority
                         sizes="(max-width: 768px) 100vw, 50vw"
+                        unoptimized={true}
                         onError={(e) => {
                             console.error("Image failed to load:", mainImageUrl);
                             e.target.src = "/placeholder.jpg";
@@ -353,7 +373,7 @@ Please confirm my order.`;
                         </h1>
                         <div className="flex items-center gap-4">
                             <span className="text-3xl font-bold text-foreground bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                                ${product.price?.toFixed(2) || "0.00"}
+                                Rs. {product.price?.toFixed(2) || "0.00"}
                             </span>
                             <div className="flex items-center gap-1 text-yellow-500">
                                 <Star className="size-5 fill-current" />
@@ -371,7 +391,7 @@ Please confirm my order.`;
                     <div className="space-y-4 pt-4 border-t border-border">
                         <div className="flex items-center gap-3 text-sm text-muted-foreground p-3 bg-card/30 rounded-xl">
                             <Truck className="size-5 text-primary" />
-                            <span>Free global shipping on orders over $200</span>
+                            <span>Free global shipping on orders over Rs. 50,000</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-muted-foreground p-3 bg-card/30 rounded-xl">
                             <ShieldCheck className="size-5 text-primary" />
@@ -401,8 +421,8 @@ Please confirm my order.`;
                             id="add-cart-btn"
                             size="lg"
                             className={`flex-1 text-lg h-14 rounded-xl transition-all shadow-lg hover:shadow-xl ${isAdded
-                                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700"
-                                    : "bg-gradient-to-r from-zinc-100 to-zinc-200 text-foreground hover:from-zinc-200 hover:to-zinc-300 dark:from-zinc-900 dark:to-zinc-800 dark:text-white"
+                                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700"
+                                : "bg-gradient-to-r from-zinc-100 to-zinc-200 text-foreground hover:from-zinc-200 hover:to-zinc-300 dark:from-zinc-900 dark:to-zinc-800 dark:text-white"
                                 }`}
                             onClick={handleAddToCart}
                             disabled={product.stock <= 0}
@@ -454,8 +474,8 @@ Please confirm my order.`;
                             key={tab}
                             onClick={() => handleTabChange(tab)}
                             className={`px-8 py-4 text-lg font-medium transition-all border-b-2 -mb-[2px] whitespace-nowrap ${activeTab === tab
-                                    ? "border-primary text-primary"
-                                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                                ? "border-primary text-primary"
+                                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                                 }`}
                         >
                             {tab}
@@ -529,7 +549,7 @@ Please confirm my order.`;
                             <div className="flex justify-between py-3 border-b border-border">
                                 <span className="text-muted-foreground">Price</span>
                                 <span className="font-medium text-foreground">
-                                    ${product.price?.toFixed(2)}
+                                    Rs. {product.price?.toFixed(2)}
                                 </span>
                             </div>
                             <div className="flex justify-between py-3 border-b border-border">
@@ -602,7 +622,7 @@ Please confirm my order.`;
                                             {relatedProduct.title}
                                         </h3>
                                         <p className="text-muted-foreground">
-                                            ${relatedProduct.price?.toFixed(2) || "0.00"}
+                                            Rs. {relatedProduct.price?.toFixed(2) || "0.00"}
                                         </p>
                                     </Link>
                                 </div>

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const SLIDES = [
     {
@@ -164,9 +165,11 @@ export function HeroSlider() {
                                 {slide.subtitle}
                             </p>
                             <div className="animate-text pt-8">
-                                <Button size="lg" className="rounded-full h-16 px-12 text-lg bg-white text-black hover:bg-zinc-200 hover:-translate-y-1 transition-all shadow-2xl active:scale-95 font-bold">
-                                    Shop Now <ArrowRight className="ml-3 size-6" />
-                                </Button>
+                                <Link href="/shop">
+                                    <Button size="lg" className="rounded-full h-16 px-12 text-lg bg-white text-black hover:bg-zinc-200 hover:-translate-y-1 transition-all shadow-2xl active:scale-95 font-bold pointer-events-auto">
+                                        Shop Now <ArrowRight className="ml-3 size-6" />
+                                    </Button>
+                                </Link>
                             </div>
                         </div>
                     </div>

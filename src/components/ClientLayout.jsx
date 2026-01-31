@@ -9,17 +9,18 @@ import { CartProvider } from "@/context/CartContext";
 
 export default function ClientLayout({ children }) {
     const pathname = usePathname();
-    const isAuthPage = pathname === "/signin" || pathname === "/admin/login" || pathname === "/admin/signup";
+    // Hide default header/footer for admin routes and auth pages
+    const shouldHideHeaderFooter = pathname === "/signin" || pathname.startsWith("/admin");
 
     return (
         <CartProvider>
             <SmoothScroll>
-                {/* {!isAuthPage && <TopBar />} */}
-                {!isAuthPage && <Header />}
-                <main className={`flex-1 ${!isAuthPage ? "pt-24 pb-12" : "min-h-screen"}`}>
+                {/* {!shouldHideHeaderFooter && <TopBar />} */}
+                {!shouldHideHeaderFooter && <Header />}
+                <main className={`flex-1 ${!shouldHideHeaderFooter ? "pt-24 pb-12" : "min-h-screen"}`}>
                     {children}
                 </main>
-                {!isAuthPage && <Footer />}
+                {!shouldHideHeaderFooter && <Footer />}
             </SmoothScroll>
         </CartProvider>
     );

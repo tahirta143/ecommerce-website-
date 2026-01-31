@@ -516,14 +516,7 @@ export default function Footer() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-400">Made with</span>
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-red-500 rounded-full blur opacity-70"></div>
-              <div className="relative size-5 rounded-full bg-gradient-to-r from-pink-500 to-red-500 flex items-center justify-center">
-                <span className="text-white text-xs">❤️</span>
-              </div>
-            </div>
-            <span className="text-xs text-zinc-400">in Pakistan</span>
+            <span className="text-xs text-zinc-400">Made with ❤️ in Pakistan</span>
           </div>
         </div>
       </div>

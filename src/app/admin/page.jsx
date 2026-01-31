@@ -1,17 +1,44 @@
 "use client";
 
-import { products } from "@/lib/data";
-import { Package, Users, DollarSign, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Package, Users, DollarSign, ArrowUpRight, TrendingUp, FolderTree } from "lucide-react";
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
 export default function AdminDashboard() {
-    const totalProducts = products.length;
+    const [statsData, setStatsData] = useState({
+        products: [],
+        categories: [],
+        isLoading: true
+    });
     const containerRef = useRef(null);
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [prodRes, catRes] = await Promise.all([
+                    fetch("https://backend-with-node-js-ueii.onrender.com/api/products"),
+                    fetch("https://backend-with-node-js-ueii.onrender.com/api/categories")
+                ]);
+                const prodData = await prodRes.json();
+                const catData = await catRes.json();
+
+                setStatsData({
+                    products: prodData.data || [],
+                    categories: catData.data || [],
+                    isLoading: false
+                });
+            } catch (err) {
+                console.error("Dashboard fetch error:", err);
+                setStatsData(prev => ({ ...prev, isLoading: false }));
+            }
+        };
+        fetchData();
+    }, []);
+
     useGSAP(() => {
+        if (statsData.isLoading) return;
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
         tl.fromTo(".dashboard-header",
@@ -31,11 +58,19 @@ export default function AdminDashboard() {
     }, { scope: containerRef });
 
     const stats = [
-        { label: "Total Products", value: totalProducts, icon: <Package />, color: "bg-blue-50 text-blue-600" },
-        { label: "Total Customers", value: "1,284", icon: <Users />, color: "bg-purple-50 text-purple-600" },
-        { label: "Revenue", value: "$42,850", icon: <DollarSign />, color: "bg-green-50 text-green-600" },
+        { label: "Total Products", value: statsData.products.length, icon: <Package />, color: "bg-blue-50 text-blue-600" },
+        { label: "Categories", value: statsData.categories.length, icon: <FolderTree />, color: "bg-purple-50 text-purple-600" },
+        { label: "Revenue", value: "Rs. 42,850", icon: <DollarSign />, color: "bg-green-50 text-green-600" },
         { label: "Growth", value: "+12.5%", icon: <TrendingUp />, color: "bg-orange-50 text-orange-600" },
     ];
+
+    if (statsData.isLoading) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <div className="size-12 border-4 border-zinc-200 border-t-black rounded-full animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div ref={containerRef} className="space-y-8 flex flex-col min-h-screen">
@@ -71,19 +106,19 @@ export default function AdminDashboard() {
                 <div className="dashboard-content-card bg-white p-8 rounded-[2rem] border border-zinc-100 shadow-sm">
                     <h2 className="text-xl font-bold mb-6">Recent Products</h2>
                     <div className="space-y-4">
-                        {products.slice(0, 5).map(product => (
-                            <div key={product.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 hover:bg-zinc-100 transition-colors cursor-pointer group">
+                        {statsData.products.slice(0, 5).map(product => (
+                            <div key={product._id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 hover:bg-zinc-100 transition-colors cursor-pointer group">
                                 <div className="flex items-center gap-4">
                                     <div className="size-12 rounded-xl overflow-hidden bg-zinc-200 relative">
                                         <Image
-                                            src={product.image}
-                                            alt={product.name}
+                                            src={product.images && product.images[0]?.url || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=1000&auto=format&fit=crop"}
+                                            alt={product.title}
                                             fill
                                             className="object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                     </div>
                                     <div>
-                                        <div className="font-bold text-sm">{product.name}</div>
+                                        <div className="font-bold text-sm truncate max-w-[200px]">{product.title}</div>
                                         <div className="text-xs text-zinc-500">{product.category}</div>
                                     </div>
                                 </div>

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { showToast } from "@/components/ui/Toast";
+import { showConfirm } from "@/components/ui/ConfirmModal";
 import { cn } from "@/lib/utils";
 
 export default function ProductsList() {
@@ -20,13 +22,19 @@ export default function ProductsList() {
 
     // Function to get a valid image URL
     const getImageUrl = (product) => {
-        if (!product || !product.images || product.images.length === 0) {
-            // Return a placeholder image if no images
-            return "/placeholder-image.png";
-        }
+        if (!product) return "/placeholder-image.png";
 
-        const firstImage = product.images[0];
-        let imageUrl = firstImage.url || "";
+        let imageUrl = "";
+
+        // Try images array first
+        if (product.images && product.images.length > 0) {
+            const first = product.images[0];
+            imageUrl = typeof first === "string" ? first : (first.url || "");
+        }
+        // Then try single image property
+        else if (product.image) {
+            imageUrl = typeof product.image === "string" ? product.image : (product.image.url || "");
+        }
 
         // If no URL, return placeholder
         if (!imageUrl || imageUrl.trim() === "") {
@@ -177,40 +185,51 @@ export default function ProductsList() {
     }, [apiBase]);
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this product? This action cannot be undone.")) return;
+        const product = products.find(p => p._id === id);
+        if (!product) return;
 
-        try {
-            setIsDeleting(id);
-            const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
+        showConfirm({
+            title: "Delete Product",
+            message: `Are you sure you want to delete "${product.title}"? This action cannot be undone.`,
+            confirmText: "Delete",
+            cancelText: "Cancel",
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    setIsDeleting(id);
+                    const token = localStorage.getItem("admin_token") || localStorage.getItem("token");
 
-            const response = await fetch(`${apiBase}/api/products/${id}`, {
-                method: "DELETE",
-                mode: "cors",
-                headers: {
-                    "token": token,
-                    "Authorization": `Bearer ${token}`,
-                    "Accept": "application/json"
-                },
-                credentials: "include"
-            });
+                    const response = await fetch(`${apiBase}/api/products/${id}`, {
+                        method: "DELETE",
+                        mode: "cors",
+                        headers: {
+                            "token": token,
+                            "Authorization": `Bearer ${token}`,
+                            "Accept": "application/json"
+                        },
+                        credentials: "include"
+                    });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Delete failed (${response.status})`);
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.message || `Delete failed (${response.status})`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        setProducts(products.filter(p => p._id !== id));
+                        showToast("Product deleted successfully", "success");
+                    } else {
+                        throw new Error(data.message || "Failed to delete product");
+                    }
+                } catch (err) {
+                    console.error("Delete Product Error:", err);
+                    showToast(err.message === "Failed to fetch" ? "Network Error: Could not connect to server." : err.message, "error");
+                } finally {
+                    setIsDeleting(null);
+                }
             }
-
-            const data = await response.json();
-            if (data.success) {
-                setProducts(products.filter(p => p._id !== id));
-            } else {
-                throw new Error(data.message || "Failed to delete product");
-            }
-        } catch (err) {
-            console.error("Delete Product Error:", err);
-            alert(err.message === "Failed to fetch" ? "Network Error: Could not connect to server." : err.message);
-        } finally {
-            setIsDeleting(null);
-        }
+        });
     };
 
     const handleRetry = () => {
@@ -393,7 +412,7 @@ export default function ProductsList() {
                                     <tr className="border-b border-zinc-100">
                                         <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500">Product</th>
                                         <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500">Category</th>
-                                        <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500">Price</th>
+                                        <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500">Price (PKR)</th>
                                         <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500">Stock</th>
                                         <th className="px-6 md:px-8 py-4 text-sm font-bold text-zinc-500 text-right">Actions</th>
                                     </tr>
@@ -449,7 +468,7 @@ export default function ProductsList() {
                                                         {product.category}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 md:px-8 py-4 font-bold text-zinc-900">${product.price}</td>
+                                                <td className="px-6 md:px-8 py-4 font-bold text-zinc-900">Rs. {product.price}</td>
                                                 <td className="px-6 md:px-8 py-4">
                                                     <span className={cn(
                                                         "flex items-center gap-1 text-sm font-bold",

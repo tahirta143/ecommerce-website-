@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
-import { ShoppingCart, Heart, Check } from "lucide-react";
+import { ShoppingCart, Heart, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useState, useRef, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
 // Register ScrollTrigger
@@ -24,27 +25,47 @@ const getImageUrl = (image) => {
     return "/placeholder-image.jpg";
 };
 
-// Simpler ProductCard without date calculation issues
-function ProductCard({ product }) {
+const getProductImage = (product) => {
+    if (!product) return "/placeholder-image.jpg";
+
+    // Try images array first
+    if (product.images && product.images.length > 0) {
+        return getImageUrl(product.images[0]);
+    }
+    // Switch to singular image property
+    if (product.image) {
+        return getImageUrl(product.image);
+    }
+
+    return "/placeholder-image.jpg";
+};
+// Modern ProductCard with Multi-Image Slider & Premium Styling
+function ProductCard({ product, compact = false }) {
     const { addToCart } = useCart();
+    const router = useRouter();
     const [isAdded, setIsAdded] = useState(false);
+    const [currentImgIndex, setCurrentImgIndex] = useState(0);
     const cardRef = useRef(null);
 
+    const images = product.images && product.images.length > 0
+        ? product.images.map(img => getImageUrl(img))
+        : [getProductImage(product)];
     const { contextSafe } = useGSAP(
         () => {
             if (!cardRef.current) return;
-            // Entry Animation
+            // Entry Animation - Staggered entrance
             gsap.fromTo(
                 cardRef.current,
-                { opacity: 0, y: 50 },
+                { opacity: 0, scale: 0.95, y: 30 },
                 {
                     opacity: 1,
+                    scale: 1,
                     y: 0,
-                    duration: 1,
-                    ease: "power3.out",
+                    duration: 0.8,
+                    ease: "power2.out",
                     scrollTrigger: {
                         trigger: cardRef.current,
-                        start: "top 90%",
+                        start: "top 92%",
                         toggleActions: "play none none reverse",
                     },
                 },
@@ -53,70 +74,137 @@ function ProductCard({ product }) {
         { scope: cardRef },
     );
 
-    // Hover Effects - Using event targets to avoid ref-render warnings
+    // Hover Effects - Snappy, Premium Feel
     const handleMouseEnter = contextSafe((e) => {
         const card = e.currentTarget;
         const q = gsap.utils.selector(card);
+
+        // Immediate responsive lift
         gsap.to(card, {
             y: -8,
-            boxShadow: "0 20px 40px -10px rgba(0,0,0,0.3)",
-            duration: 0.4,
-            ease: "power2.out",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.12)",
+            borderColor: "rgba(0, 0, 0, 0.08)",
+            duration: 0.35,
+            ease: "expo.out",
         });
+
+        // Magnetic image scale
         gsap.to(q(".product-image"), {
             scale: 1.1,
-            duration: 0.8,
+            y: -5,
+            duration: 0.4,
             ease: "power2.out",
         });
-        gsap.to(q(".product-overlay"), { opacity: 1, duration: 0.3 });
-        gsap.to(q(".product-actions"), {
-            x: 0,
+
+        // Clean overlay
+        gsap.to(q(".image-overlay"), {
             opacity: 1,
-            duration: 0.4,
-            ease: "back.out(1.7)",
+            duration: 0.3,
         });
-        gsap.to(q(".add-to-cart-container"), {
+
+        // Staggered reveal for UI elements
+        gsap.to(q(".wishlist-btn"), {
+            scale: 1,
+            opacity: 1,
+            x: 0,
+            duration: 0.4,
+            ease: "back.out(2)",
+        });
+
+        gsap.to(q(".quick-add-container"), {
             y: 0,
             opacity: 1,
-            duration: 0.5,
-            ease: "power2.out",
+            duration: 0.4,
+            ease: "expo.out",
+            delay: 0.05
+        });
+
+        gsap.to(q(".image-dots"), {
+            opacity: 1,
+            y: 0,
+            duration: 0.3,
+            stagger: 0.05
         });
     });
 
     const handleMouseLeave = contextSafe((e) => {
         const card = e.currentTarget;
         const q = gsap.utils.selector(card);
+
         gsap.to(card, {
             y: 0,
-            boxShadow: "none",
+            boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+            borderColor: "rgba(0, 0, 0, 0.04)",
             duration: 0.4,
-            ease: "power2.out",
+            ease: "expo.inOut",
         });
+
         gsap.to(q(".product-image"), {
             scale: 1,
-            duration: 0.6,
-            ease: "power2.out",
+            y: 0,
+            duration: 0.5,
+            ease: "power2.inOut",
         });
-        gsap.to(q(".product-overlay"), { opacity: 0, duration: 0.3 });
-        gsap.to(q(".product-actions"), {
-            x: 5,
+
+        gsap.to(q(".image-overlay"), {
+            opacity: 0,
+            duration: 0.3,
+        });
+
+        gsap.to(q(".wishlist-btn"), {
+            scale: 0.5,
+            opacity: 0,
+            x: 15,
+            duration: 0.3,
+            ease: "power2.in",
+        });
+
+        gsap.to(q(".quick-add-container"), {
+            y: 15,
             opacity: 0,
             duration: 0.3,
             ease: "power2.in",
         });
-        gsap.to(q(".add-to-cart-container"), {
+
+        gsap.to(q(".image-dots"), {
+            opacity: 0,
             y: 5,
-            opacity: 0,
-            duration: 0.3,
-            ease: "power2.in",
+            duration: 0.2,
         });
     });
 
     const handleAddToCart = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        addToCart(product);
+
+        // Auth Wall Check - Robust check for token
+        const token = localStorage.getItem("token");
+        const isAuthenticated = token && token !== "undefined" && token !== "null";
+
+        if (!isAuthenticated) {
+            console.log("Not authenticated, redirecting to signin...");
+            router.push("/signin");
+            return;
+        }
+
+        // Normalize product data for Cart Context/Page
+        const cartProduct = {
+            id: product._id || product.id,
+            name: product.title || product.name || "Unnamed Product",
+            price: product.price || 0,
+            image: images[0] || "/placeholder-image.jpg",
+            category: product.category || "General"
+        };
+
+        addToCart(cartProduct);
         setIsAdded(true);
+
+        // Success pulse animation
+        gsap.fromTo(cardRef.current,
+            { outline: "2px solid transparent" },
+            { outline: "2px solid #22c55e", duration: 0.3, yoyo: true, repeat: 1 }
+        );
+
         setTimeout(() => setIsAdded(false), 2000);
     };
 
@@ -125,100 +213,125 @@ function ProductCard({ product }) {
     const productTitle = product.title || product.name || "Unnamed Product";
     const productPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
 
-    // Get the first image URL for display
-    const imageUrl =
-        product.images && product.images.length > 0
-            ? getImageUrl(product.images[0])
-            : "/placeholder-image.jpg";
-
     return (
         <div
             ref={cardRef}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className="product-card group relative bg-card rounded-3xl overflow-hidden shadow-sm border border-white/50 dark:border-white/5"
+            className={`product-card group relative bg-white rounded-[1.5rem] overflow-hidden border border-slate-100/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${compact ? 'max-w-sm' : ''}`}
         >
-            <Link href={`/product/${productId}`}>
-                {/* Image Container */}
-                <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                    <Image
-                        src={imageUrl}
-                        alt={productTitle}
-                        fill
-                        className="product-image object-cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
-                        priority={false}
-                        onError={(e) => {
-                            e.target.src = "/placeholder-image.jpg";
-                        }}
-                    />
-
-                    {/* Overlay Actions */}
-                    <div className="product-overlay absolute inset-0 bg-transparent flex items-center justify-center gap-3 opacity-0 pointer-events-none">
-                        {/* Gradient overlay */}
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
-                    </div>
-
-                    <div className="product-actions absolute top-4 right-4 flex flex-col gap-2 translate-x-5 opacity-0 z-10 pointer-events-auto">
-                        <Button
-                            size="icon"
-                            variant="secondary"
-                            className="rounded-full shadow-lg hover:bg-white hover:text-red-500 transition-colors"
-                        >
-                            <Heart className="size-4" />
-                        </Button>
-                    </div>
-
-                    {/* Quick Add Button */}
-                    <div className="add-to-cart-container absolute bottom-4 inset-x-4 translate-y-5 opacity-0 z-20 pointer-events-auto">
-                        <Button
-                            onClick={handleAddToCart}
-                            variant="ghost"
-                            className={`w-full rounded-xl shadow-xl backdrop-blur-md transition-all ${isAdded
-                                ? "bg-green-500 text-white hover:bg-green-600 hover:text-white"
-                                : "bg-white/90 text-black hover:bg-white hover:text-black dark:bg-black/90 dark:text-white dark:hover:bg-black dark:hover:text-white"
-                                }`}
-                        >
-                            {isAdded ? (
-                                <>
-                                    <Check className="mr-2 size-4" /> Added
-                                </>
-                            ) : (
-                                <>
-                                    <ShoppingCart className="mr-2 size-4" /> Quick Add
-                                </>
-                            )}
-                        </Button>
-                    </div>
-
-                    {/* Badge - Simple version (remove if not needed) */}
-                    {product.isNew && (
-                        <span className="absolute top-4 left-4 bg-accent text-white backdrop-blur-md text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
-                            New
-                        </span>
-                    )}
-                </div>
-            </Link>
-
-            {/* Content */}
-            <div className="p-3 md:p-5">
-                <Link href={`/product/${productId}`}>
-                    <h3 className="font-bold text-lg leading-tight mb-1 group-hover:text-primary transition-colors cursor-pointer line-clamp-1">
-                        {productTitle}
-                    </h3>
+            {/* Image Section */}
+            <div className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[4/5]'} overflow-hidden group-hover:cursor-pointer bg-slate-50`}>
+                <Link href={`/product/${productId}`} className="absolute inset-0 z-0">
+                    <motion.div
+                        key={currentImgIndex}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="relative w-full h-full"
+                    >
+                        <Image
+                            src={images[currentImgIndex]}
+                            alt={productTitle}
+                            fill
+                            className="product-image object-cover"
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                            priority={currentImgIndex === 0}
+                            unoptimized={true}
+                        />
+                    </motion.div>
                 </Link>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-1">
-                    {product.category || "General"}
-                </p>
-                <div className="flex items-center justify-between">
-                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-                        ${productPrice.toFixed(2)}
-                    </span>
-                    <div className="flex text-amber-500 text-xs gap-0.5">
-                        {"★".repeat(5)}
+
+                {/* Subtle Overlay */}
+                <div className="image-overlay absolute inset-0 bg-black/5 opacity-0 pointer-events-none" />
+
+                {/* Image Dots - Slider Controls */}
+                {images.length > 1 && (
+                    <div className="image-dots absolute top-1/2 -translate-y-1/2 left-3 flex flex-col gap-1.5 z-20 opacity-0 translate-x-[-10px]">
+                        {images.map((_, idx) => (
+                            <button
+                                key={idx}
+                                onMouseEnter={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentImgIndex(idx);
+                                }}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setCurrentImgIndex(idx);
+                                }}
+                                className={`size-1.5 rounded-full transition-all duration-200 ${currentImgIndex === idx
+                                    ? "bg-primary scale-150 shadow-[0_0_8px_var(--primary)]"
+                                    : "bg-slate-300 hover:bg-slate-400"
+                                    }`}
+                                aria-label={`View image ${idx + 1}`}
+                            />
+                        ))}
                     </div>
+                )}
+
+                {/* Wishlist Button - Floating & Light Glass */}
+                <button className="wishlist-btn absolute top-4 right-4 z-20 flex items-center justify-center size-9 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-400 opacity-0 translate-x-10 scale-75 hover:bg-white hover:text-red-500 shadow-sm">
+                    <Heart className="size-4" />
+                </button>
+
+                {/* Badges */}
+                {product.isNew && (
+                    <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                        <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-[9px] font-bold uppercase tracking-widest shadow-sm border border-slate-100/50 backdrop-blur-sm">
+                            New Arrival
+                        </span>
+                    </div>
+                )}
+
+                {/* Quick Add Button - Clean Glass */}
+                <div className="quick-add-container absolute bottom-4 inset-x-4 z-20 translate-y-10 opacity-0">
+                    <Button
+                        onClick={handleAddToCart}
+                        className={`w-full h-11 rounded-xl shadow-lg backdrop-blur-xl transition-all duration-300 ${isAdded
+                            ? "bg-green-500 text-white"
+                            : "bg-white/95 text-slate-800 border border-slate-100/50 hover:bg-black hover:text-white"
+                            }`}
+                    >
+                        {isAdded ? (
+                            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} className="flex items-center">
+                                <Check className="mr-2 size-4" /> Added
+                            </motion.div>
+                        ) : (
+                            <div className="flex items-center font-medium text-sm">
+                                <ShoppingCart className="mr-2 size-4" /> Quick Add
+                            </div>
+                        )}
+                    </Button>
                 </div>
             </div>
+
+            {/* Info Section */}
+            <Link href={`/product/${productId}`}>
+                <div className={`${compact ? 'p-3 space-y-1.5' : 'p-5 space-y-2'}`}>
+                    <div className="space-y-0.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                {product.category || "Lifestyle"}
+                            </span>
+                        </div>
+                        <h3 className={`font-semibold text-slate-800 leading-tight group-hover:text-primary transition-colors line-clamp-1 ${compact ? 'text-sm' : 'text-base'}`}>
+                            {productTitle}
+                        </h3>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                        <span className={`font-bold text-slate-900 ${compact ? 'text-lg' : 'text-xl'}`}>
+                            Rs. {productPrice.toFixed(2)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <div className="flex text-amber-300 gap-0.5 scale-[0.7] origin-right">
+                                {"★".repeat(5)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Link>
         </div>
     );
 }
@@ -258,14 +371,37 @@ export function ProductCardSkeleton() {
     );
 }
 
-// ProductGrid Component with manual control (no auto-fetch)
 export function ProductGridManual({
     products = [],
     title,
     isLoading = false,
     error = null,
     onRetry,
+    compact = false,
+    gridClassName = "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6"
 }) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+
+    // Reset pagination when products list changes (e.g. different category)
+    // Using a simple conditional check to avoid redundant effect-based renders
+    // if we haven't already reset it.
+    const [prevProductsLength, setPrevProductsLength] = useState(products.length);
+    if (products.length !== prevProductsLength) {
+        setCurrentPage(1);
+        setPrevProductsLength(products.length);
+    }
+
+    const totalPages = Math.ceil(products.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentProducts = products.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     return (
         <section className="py-12">
             <div className="container mx-auto px-4">
@@ -299,14 +435,14 @@ export function ProductGridManual({
                     </motion.div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                <div className={`${gridClassName} min-h-[400px]`}>
                     {isLoading ? (
                         Array.from({ length: 10 }).map((_, index) => (
                             <ProductCardSkeleton key={`skeleton-${index}`} />
                         ))
-                    ) : products.length > 0 ? (
-                        products.map((product) => (
-                            <ProductCard key={product._id} product={product} />
+                    ) : currentProducts.length > 0 ? (
+                        currentProducts.map((product) => (
+                            <ProductCard key={product._id || product.id} product={product} compact={compact} />
                         ))
                     ) : !error ? (
                         <div className="col-span-full text-center py-12">
@@ -320,6 +456,46 @@ export function ProductGridManual({
                         </div>
                     ) : null}
                 </div>
+
+                {/* Pagination Controls */}
+                {!isLoading && totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-3 mt-16">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            disabled={currentPage === 1}
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            className="rounded-xl hover:bg-primary hover:text-white transition-all duration-300"
+                        >
+                            <ChevronLeft className="size-4" />
+                        </Button>
+
+                        <div className="flex items-center gap-2">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                <button
+                                    key={page}
+                                    onClick={() => handlePageChange(page)}
+                                    className={`size-10 rounded-xl transition-all duration-300 font-medium ${currentPage === page
+                                        ? "bg-primary text-white shadow-lg shadow-primary/30"
+                                        : "hover:bg-primary/10 text-slate-600"
+                                        }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            disabled={currentPage === totalPages}
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            className="rounded-xl hover:bg-primary hover:text-white transition-all duration-300"
+                        >
+                            <ChevronRight className="size-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </section>
     );
@@ -393,17 +569,46 @@ export function ProductsPage() {
     );
 }
 
-// Main dynamic ProductGrid component - AUTO FETCHES FROM API
-export function ProductGrid({ title }) {
-    const { products, isLoading, error, refetch } = useProducts();
+// Main dynamic ProductGrid component
+export function ProductGrid({
+    title,
+    products: initialProducts,
+    isLoading: initialLoading,
+    error: initialError,
+    onRetry: initialRetry,
+    compact = false,
+    gridClassName
+}) {
+    // Only call useProducts if we don't have initialProducts or initialLoading
+    // Using a conditional hook usage is technically against React rules, 
+    // but we can wrap it or just handle the logic inside the hook if needed.
+    // However, a simpler way is to always call it but ignore its results.
+    // To be safer and follow rules, we call the hook but prioritize props.
+    const {
+        products: fetchedProducts,
+        isLoading: fetchedLoading,
+        error: fetchedError,
+        refetch: fetchedRetry
+    } = useProducts();
+
+    // If initialProducts is provided (even if empty array), we use it.
+    // This allows Shop page to manage its own filtered state.
+    const hasProps = initialProducts !== undefined;
+
+    const displayProducts = hasProps ? initialProducts : fetchedProducts;
+    const displayLoading = hasProps ? (initialLoading ?? false) : fetchedLoading;
+    const displayError = hasProps ? initialError : fetchedError;
+    const displayRetry = hasProps ? initialRetry : fetchedRetry;
 
     return (
         <ProductGridManual
-            products={products}
+            products={displayProducts}
             title={title}
-            isLoading={isLoading}
-            error={error}
-            onRetry={refetch}
+            isLoading={displayLoading}
+            error={displayError}
+            onRetry={displayRetry}
+            compact={compact}
+            gridClassName={gridClassName}
         />
     );
 }

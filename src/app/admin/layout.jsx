@@ -7,6 +7,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
+import Toast, { showToast } from "@/components/ui/Toast";
+import ConfirmModal, { showConfirm } from "@/components/ui/ConfirmModal";
 
 export default function AdminLayout({ children }) {
     const [adminData, setAdminData] = useState({
@@ -31,16 +33,21 @@ export default function AdminLayout({ children }) {
             }
         }
 
-        setAdminData({
-            isAuthenticated: auth,
-            isLoading: false,
-            user: user
-        });
+        if (auth !== adminData.isAuthenticated || JSON.stringify(user) !== JSON.stringify(adminData.user)) {
+            setAdminData(prev => ({
+                ...prev,
+                isAuthenticated: auth,
+                isLoading: false,
+                user: user
+            }));
+        } else if (adminData.isLoading) {
+            setAdminData(prev => ({ ...prev, isLoading: false }));
+        }
 
         if (!auth && pathname !== "/admin/login" && pathname !== "/admin/signup") {
             router.push("/admin/login");
         }
-    }, [pathname, router]);
+    }, [pathname, router, adminData.isAuthenticated, adminData.user, adminData.isLoading]);
 
     if (adminData.isLoading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
 
@@ -51,19 +58,31 @@ export default function AdminLayout({ children }) {
     if (!adminData.isAuthenticated) return null;
 
     const handleLogout = () => {
-        localStorage.removeItem("admin_auth");
-        localStorage.removeItem("admin_token");
-        localStorage.removeItem("admin_user");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setAdminData({ isAuthenticated: false, isLoading: false, user: null });
-        router.push("/admin/login");
+        showConfirm({
+            title: "Sign Out",
+            message: "Are you sure you want to sign out of the admin portal?",
+            confirmText: "Sign Out",
+            isDestructive: true,
+            onConfirm: () => {
+                localStorage.removeItem("admin_auth");
+                localStorage.removeItem("admin_token");
+                localStorage.removeItem("admin_user");
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+
+                showToast("Logged out successfully", "success");
+
+                setAdminData({ isAuthenticated: false, isLoading: false, user: null });
+                router.push("/admin/login");
+            }
+        });
     };
 
     const navItems = [
         { name: "Dashboard", href: "/admin", icon: <LayoutDashboard className="size-5" /> },
         { name: "Orders", href: "/admin/orders", icon: <ClipboardList className="size-5" /> },
         { name: "All Products", href: "/admin/products", icon: <ShoppingBag className="size-5" /> },
+        { name: "Categories", href: "/admin/categories", icon: <PlusCircle className="size-5" /> },
         { name: "Add Product", href: "/admin/add-product", icon: <PlusCircle className="size-5" /> },
     ];
 
@@ -140,26 +159,31 @@ export default function AdminLayout({ children }) {
                         {navItems.find(item => item.href === pathname)?.name || "Admin"}
                     </div>
 
-                    <Link href="/admin/profile" className="flex items-center gap-4 hover:bg-zinc-50 p-2 rounded-xl transition-colors">
-                        <div className="text-right hidden sm:block">
+                    <button onClick={handleLogout} className="flex items-center gap-4 hover:bg-zinc-50 p-2 rounded-xl transition-colors text-left">
+                        <div className="hidden sm:block">
                             <div className="text-sm font-bold">{adminData.user?.name || "Admin User"}</div>
                             <div className="text-xs text-zinc-500">{adminData.user?.role || "Super Admin"}</div>
                         </div>
-                        <div className="size-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm overflow-hidden">
+                        <div className="size-10 rounded-full bg-zinc-200 border-2 border-white shadow-sm overflow-hidden relative">
                             <Image
                                 src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100&auto=format&fit=crop"
                                 alt="Admin Avatar"
                                 width={100}
                                 height={100}
                             />
+                            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
+                                <LogOut className="size-4 text-white" />
+                            </div>
                         </div>
-                    </Link>
+                    </button>
                 </header>
 
                 <div className="p-8">
                     {children}
                 </div>
             </main>
+            <Toast />
+            <ConfirmModal />
         </div>
     );
 }

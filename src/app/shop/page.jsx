@@ -45,6 +45,7 @@ export default function Shop() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [categories, setCategories] = useState(["All"]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [priceLimit, setPriceLimit] = useState(2000);
 
   // Refs
   const containerRef = useRef(null);
@@ -97,7 +98,9 @@ export default function Shop() {
               processedProducts.length > 0
                 ? Math.max(...processedProducts.map((p) => p.price || 0))
                 : 2000;
-            setPriceRange([0, Math.ceil(maxPrice)]);
+            const ceilMax = Math.ceil(maxPrice);
+            setPriceLimit(ceilMax);
+            setPriceRange([0, ceilMax]);
           }
         }
       } catch (error) {
@@ -129,8 +132,10 @@ export default function Shop() {
     }
 
     // Category filter
-    if (selectedCategory !== "All") {
-      if (!product.category || product.category !== selectedCategory) {
+    if (selectedCategory && selectedCategory !== "All") {
+      const pCat = product.category?.trim().toLowerCase() || "";
+      const sCat = selectedCategory.trim().toLowerCase();
+      if (pCat !== sCat) {
         return false;
       }
     }
@@ -167,11 +172,7 @@ export default function Shop() {
     setSearchQuery("");
 
     // Reset price range to calculated max
-    const maxPrice =
-      allProducts.length > 0
-        ? Math.max(...allProducts.map((p) => p.price || 0))
-        : 2000;
-    setPriceRange([0, Math.ceil(maxPrice)]);
+    setPriceRange([0, priceLimit]);
 
     setSortBy("featured");
 
@@ -362,11 +363,10 @@ export default function Shop() {
                       setSelectedCategory(category);
                       setShowMobileMenu(false);
                     }}
-                    className={`p-3 rounded-lg text-sm text-center transition-all ${
-                      selectedCategory === category
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                    }`}
+                    className={`p-3 rounded-lg text-sm text-center transition-all ${selectedCategory === category
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      }`}
                   >
                     {category}
                   </button>
@@ -437,11 +437,10 @@ export default function Shop() {
                         });
                       }}
                       data-category={category}
-                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${
-                        selectedCategory === category
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                      }`}
+                      className={`px-3 py-1.5 rounded-full text-xs transition-all ${selectedCategory === category
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                        }`}
                     >
                       {category}
                     </button>
@@ -460,7 +459,7 @@ export default function Shop() {
                   <input
                     type="range"
                     min="0"
-                    max="2000"
+                    max={priceLimit}
                     value={priceRange[1]}
                     onChange={(e) =>
                       setPriceRange([priceRange[0], parseInt(e.target.value)])
@@ -484,11 +483,10 @@ export default function Shop() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`w-full text-left p-3 rounded-lg transition-all text-sm ${
-                        sortBy === option.value
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "hover:bg-secondary"
-                      }`}
+                      className={`w-full text-left p-3 rounded-lg transition-all text-sm ${sortBy === option.value
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "hover:bg-secondary"
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -618,7 +616,7 @@ export default function Shop() {
 
               <p className="text-sm text-muted-foreground">
                 Showing {sortedProducts.length} of {allProducts.length} products
-                {priceRange[0] > 0 || priceRange[1] < 2000
+                {priceRange[0] > 0 || priceRange[1] < priceLimit
                   ? ` (Price: $${priceRange[0]} - $${priceRange[1]})`
                   : ""}
               </p>
@@ -696,11 +694,10 @@ export default function Shop() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`w-full text-left px-4 py-3 hover:bg-secondary transition-colors text-sm ${
-                        sortBy === option.value
-                          ? "text-primary bg-primary/10"
-                          : ""
-                      }`}
+                      className={`w-full text-left px-4 py-3 hover:bg-secondary transition-colors text-sm ${sortBy === option.value
+                        ? "text-primary bg-primary/10"
+                        : ""
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -763,11 +760,10 @@ export default function Shop() {
                             ease: "power2.inOut",
                           });
                         }}
-                        className={`category-btn-${index} w-full text-left p-3 rounded-xl transition-all duration-300 ${
-                          selectedCategory === item
-                            ? "bg-primary/10 text-primary font-bold border border-primary/20"
-                            : "text-muted-foreground hover:text-primary hover:bg-primary/5 hover:pl-5"
-                        }`}
+                        className={`category-btn-${index} w-full text-left p-3 rounded-xl transition-all duration-300 ${selectedCategory === item
+                          ? "bg-primary/10 text-primary font-bold border border-primary/20"
+                          : "text-muted-foreground hover:text-primary hover:bg-primary/5 hover:pl-5"
+                          }`}
                       >
                         {item}
                         {selectedCategory === item && (
@@ -798,12 +794,12 @@ export default function Shop() {
                     <div className="relative h-2 bg-secondary rounded-full">
                       <div
                         className="price-slider-track absolute h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                        style={{ width: `${(priceRange[1] / 2000) * 100}%` }}
+                        style={{ width: `${(priceRange[1] / priceLimit) * 100}%` }}
                       />
                       <input
                         type="range"
                         min="0"
-                        max="2000"
+                        max={priceLimit}
                         value={priceRange[1]}
                         onChange={(e) =>
                           setPriceRange([
@@ -868,7 +864,7 @@ export default function Shop() {
                       <span className="text-sm">Search</span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate max-w-[100px]">
-                          "{searchQuery}"
+                          &quot;{searchQuery}&quot;
                         </span>
                         <button
                           onClick={() => setSearchQuery("")}
@@ -909,8 +905,8 @@ export default function Shop() {
                             const maxPrice =
                               allProducts.length > 0
                                 ? Math.max(
-                                    ...allProducts.map((p) => p.price || 0),
-                                  )
+                                  ...allProducts.map((p) => p.price || 0),
+                                )
                                 : 2000;
                             setPriceRange([0, Math.ceil(maxPrice)]);
                           }}
@@ -963,7 +959,7 @@ export default function Shop() {
                     No Products Found
                   </h3>
                   <p className="text-muted-foreground mb-6 text-sm md:text-base">
-                    No products found in "{selectedCategory}" category.
+                    No products found in &quot;{selectedCategory}&quot; category.
                     {priceRange[0] > 0 || priceRange[1] < 2000
                       ? ` (Price range: $${priceRange[0]} - $${priceRange[1]})`
                       : ""}
@@ -980,34 +976,9 @@ export default function Shop() {
                     isLoading={isLoading}
                     title={null}
                     showTitle={false}
+                    compact={true}
+                    gridClassName="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4"
                   />
-
-                  {/* Load More Button */}
-                  {!isLoading && sortedProducts.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-center pt-6 md:pt-8"
-                    >
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="rounded-full px-6 md:px-8 gap-2 group border-primary/30 hover:border-primary hover:bg-primary/5 text-sm md:text-base"
-                        onClick={(e) => {
-                          gsap.to(e.currentTarget, {
-                            scale: 0.95,
-                            duration: 0.2,
-                            yoyo: true,
-                            repeat: 1,
-                            ease: "power2.inOut",
-                          });
-                        }}
-                      >
-                        Load More
-                        <ChevronDown className="size-4 group-hover:rotate-180 transition-transform" />
-                      </Button>
-                    </motion.div>
-                  )}
                 </>
               )}
             </div>
