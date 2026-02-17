@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/Button";
 import { ShoppingCart, Heart, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { getDominantColor } from "@/lib/colors";
 
 // Register ScrollTrigger
 if (typeof window !== "undefined") {
@@ -45,11 +46,22 @@ function ProductCard({ product, compact = false }) {
     const router = useRouter();
     const [isAdded, setIsAdded] = useState(false);
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
+    const [glowColor, setGlowColor] = useState("rgba(0,0,0,0.1)");
     const cardRef = useRef(null);
 
-    const images = product.images && product.images.length > 0
+    const images = useMemo(() => product.images && product.images.length > 0
         ? product.images.map(img => getImageUrl(img))
-        : [getProductImage(product)];
+        : [getProductImage(product)], [product]);
+
+    useEffect(() => {
+        const updateColor = async () => {
+            if (images[0]) {
+                const color = await getDominantColor(images[0]);
+                setGlowColor(color);
+            }
+        };
+        updateColor();
+    }, [images]);
     const { contextSafe } = useGSAP(
         () => {
             if (!cardRef.current) return;
@@ -74,57 +86,106 @@ function ProductCard({ product, compact = false }) {
         { scope: cardRef },
     );
 
-    // Hover Effects - Snappy, Premium Feel
+    // Advanced GSAP Hover - YouTube Cinematic Style
     const handleMouseEnter = contextSafe((e) => {
         const card = e.currentTarget;
         const q = gsap.utils.selector(card);
 
-        // Immediate responsive lift
+        // YouTube-style dynamic lift and soft shadow
         gsap.to(card, {
-            y: -8,
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.12)",
-            borderColor: "rgba(0, 0, 0, 0.08)",
-            duration: 0.35,
-            ease: "expo.out",
+            scale: 1.02,
+            boxShadow: `0 30px 60px -12px ${glowColor.replace('0.5', '0.25')}`,
+            borderColor: "rgba(0, 0, 0, 0.05)",
+            duration: 0.5,
+            ease: "power2.out",
+        });
+
+        // Ambient glow - Widen on the sides
+        gsap.to(q(".product-glow"), {
+            opacity: 0.5,
+            scaleX: 1.6,
+            scaleY: 1.2,
+            duration: 0.8,
+            ease: "power2.out",
         });
 
         // Magnetic image scale
         gsap.to(q(".product-image"), {
             scale: 1.1,
             y: -5,
-            duration: 0.4,
+            duration: 0.6,
             ease: "power2.out",
         });
 
         // Clean overlay
         gsap.to(q(".image-overlay"), {
             opacity: 1,
-            duration: 0.3,
+            duration: 0.4,
         });
 
         // Staggered reveal for UI elements
-        gsap.to(q(".wishlist-btn"), {
+        const uiElements = q(".wishlist-btn, .quick-add-container, .image-dots");
+
+        gsap.to(uiElements, {
+            opacity: 1,
             scale: 1,
-            opacity: 1,
+            y: 0,
             x: 0,
-            duration: 0.4,
-            ease: "back.out(2)",
+            duration: 0.5,
+            stagger: 0.08,
+            ease: "back.out(1.7)"
+        });
+    });
+
+    const handleMouseMove = contextSafe((e) => {
+        const card = e.currentTarget;
+        if (!card) return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        // Tilt Effect
+        const tiltX = (y - centerY) / 20;
+        const tiltY = (centerX - x) / 20;
+
+        gsap.to(card, {
+            rotateX: tiltX,
+            rotateY: tiltY,
+            duration: 0.5,
+            ease: "power2.out"
         });
 
-        gsap.to(q(".quick-add-container"), {
-            y: 0,
-            opacity: 1,
-            duration: 0.4,
-            ease: "expo.out",
-            delay: 0.05
-        });
+        // Magnetic Wishlist Button
+        const wishlistBtn = card.querySelector(".wishlist-btn");
+        if (wishlistBtn) {
+            const btnRect = wishlistBtn.getBoundingClientRect();
+            const btnX = btnRect.left + btnRect.width / 2;
+            const btnY = btnRect.top + btnRect.height / 2;
 
-        gsap.to(q(".image-dots"), {
-            opacity: 1,
-            y: 0,
-            duration: 0.3,
-            stagger: 0.05
-        });
+            const dist = Math.hypot(e.clientX - btnX, e.clientY - btnY);
+
+            if (dist < 80) {
+                gsap.to(wishlistBtn, {
+                    x: (e.clientX - btnX) * 0.4,
+                    y: (e.clientY - btnY) * 0.4,
+                    scale: 1.1,
+                    duration: 0.4,
+                    ease: "power2.out"
+                });
+            } else {
+                gsap.to(wishlistBtn, {
+                    x: 0,
+                    y: 0,
+                    scale: 1,
+                    duration: 0.5,
+                    ease: "power2.out"
+                });
+            }
+        }
     });
 
     const handleMouseLeave = contextSafe((e) => {
@@ -132,45 +193,45 @@ function ProductCard({ product, compact = false }) {
         const q = gsap.utils.selector(card);
 
         gsap.to(card, {
-            y: 0,
+            scale: 1,
+            rotateX: 0,
+            rotateY: 0,
             boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
             borderColor: "rgba(0, 0, 0, 0.04)",
-            duration: 0.4,
-            ease: "expo.inOut",
+            duration: 0.6,
+            ease: "power2.inOut",
+        });
+
+        gsap.to(q(".product-glow"), {
+            opacity: 0,
+            scaleX: 0.9,
+            scaleY: 0.9,
+            duration: 0.6,
+            ease: "power2.inOut",
         });
 
         gsap.to(q(".product-image"), {
             scale: 1,
             y: 0,
-            duration: 0.5,
+            duration: 0.6,
             ease: "power2.inOut",
         });
 
         gsap.to(q(".image-overlay"), {
             opacity: 0,
-            duration: 0.3,
+            duration: 0.4,
         });
 
-        gsap.to(q(".wishlist-btn"), {
-            scale: 0.5,
+        // Coordinated UI Fade Out
+        gsap.to(q(".wishlist-btn, .quick-add-container, .image-dots"), {
             opacity: 0,
-            x: 15,
-            duration: 0.3,
-            ease: "power2.in",
+            y: 10,
+            scale: 0.8,
+            duration: 0.4,
+            ease: "power2.in"
         });
 
-        gsap.to(q(".quick-add-container"), {
-            y: 15,
-            opacity: 0,
-            duration: 0.3,
-            ease: "power2.in",
-        });
-
-        gsap.to(q(".image-dots"), {
-            opacity: 0,
-            y: 5,
-            duration: 0.2,
-        });
+        gsap.to(q(".wishlist-btn"), { x: 15 });
     });
 
     const handleAddToCart = (e) => {
@@ -217,9 +278,15 @@ function ProductCard({ product, compact = false }) {
         <div
             ref={cardRef}
             onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
-            className={`product-card group relative bg-white rounded-[1.5rem] overflow-hidden border border-slate-100/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] ${compact ? 'max-w-sm' : ''}`}
+            className={`product-card group relative bg-white rounded-[1.5rem] overflow-hidden border border-slate-100/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] perspective-1000 ${compact ? 'max-w-sm' : ''}`}
         >
+            {/* Ambient Glow Background - YouTube "Cinematic" Style */}
+            <div
+                className="product-glow absolute inset-0 z-[-1] blur-[90px] opacity-0 pointer-events-none transition-colors duration-700"
+                style={{ backgroundColor: glowColor, width: '120%', left: '-10%' }}
+            />
             {/* Image Section */}
             <div className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[4/5]'} overflow-hidden group-hover:cursor-pointer bg-slate-50`}>
                 <Link href={`/product/${productId}`} className="absolute inset-0 z-0">
@@ -260,7 +327,7 @@ function ProductCard({ product, compact = false }) {
                                     e.stopPropagation();
                                     setCurrentImgIndex(idx);
                                 }}
-                                className={`size-1.5 rounded-full transition-all duration-200 ${currentImgIndex === idx
+                                className={`size-1.5 rounded-full transition-shadow duration-200 ${currentImgIndex === idx
                                     ? "bg-primary scale-150 shadow-[0_0_8px_var(--primary)]"
                                     : "bg-slate-300 hover:bg-slate-400"
                                     }`}
@@ -288,7 +355,7 @@ function ProductCard({ product, compact = false }) {
                 <div className="quick-add-container absolute bottom-4 inset-x-4 z-20 translate-y-10 opacity-0">
                     <Button
                         onClick={handleAddToCart}
-                        className={`w-full h-11 rounded-xl shadow-lg backdrop-blur-xl transition-all duration-300 ${isAdded
+                        className={`w-full h-11 rounded-xl shadow-lg backdrop-blur-xl ${isAdded
                             ? "bg-green-500 text-white"
                             : "bg-white/95 text-slate-800 border border-slate-100/50 hover:bg-black hover:text-white"
                             }`}
@@ -315,7 +382,7 @@ function ProductCard({ product, compact = false }) {
                                 {product.category || "Lifestyle"}
                             </span>
                         </div>
-                        <h3 className={`font-semibold text-slate-800 leading-tight group-hover:text-primary transition-colors line-clamp-1 ${compact ? 'text-sm' : 'text-base'}`}>
+                        <h3 className={`font-semibold text-slate-800 leading-tight line-clamp-1 ${compact ? 'text-sm' : 'text-base'}`}>
                             {productTitle}
                         </h3>
                     </div>
