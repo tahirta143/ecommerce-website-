@@ -40,28 +40,40 @@ const getProductImage = (product) => {
 
     return "/placeholder-image.jpg";
 };
+
 // Modern ProductCard with Multi-Image Slider & Premium Styling
 function ProductCard({ product, compact = false }) {
     const { addToCart } = useCart();
     const router = useRouter();
     const [isAdded, setIsAdded] = useState(false);
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
-    const [glowColor, setGlowColor] = useState("rgba(0,0,0,0.1)");
+    const [dominantColor, setDominantColor] = useState("rgba(0,0,0,0.05)");
+    const [isColorLoaded, setIsColorLoaded] = useState(false);
     const cardRef = useRef(null);
 
     const images = useMemo(() => product.images && product.images.length > 0
         ? product.images.map(img => getImageUrl(img))
         : [getProductImage(product)], [product]);
 
+    // Extract dominant color from the first image
     useEffect(() => {
-        const updateColor = async () => {
-            if (images[0]) {
-                const color = await getDominantColor(images[0]);
-                setGlowColor(color);
+        const extractColor = async () => {
+            if (images[0] && images[0] !== "/placeholder-image.jpg") {
+                try {
+                    const color = await getDominantColor(images[0]);
+                    setDominantColor(color);
+                } catch (error) {
+                    console.error("Error extracting dominant color:", error);
+                    setDominantColor("rgba(0,0,0,0.05)");
+                }
+            } else {
+                setDominantColor("rgba(0,0,0,0.05)");
             }
+            setIsColorLoaded(true);
         };
-        updateColor();
+        extractColor();
     }, [images]);
+
     const { contextSafe } = useGSAP(
         () => {
             if (!cardRef.current) return;
@@ -94,25 +106,16 @@ function ProductCard({ product, compact = false }) {
         // YouTube-style dynamic lift and soft shadow
         gsap.to(card, {
             scale: 1.02,
-            boxShadow: `0 30px 60px -12px ${glowColor.replace('0.5', '0.25')}`,
+            boxShadow: `0 30px 60px -12px ${dominantColor.replace(')', ', 0.25)').replace('rgb', 'rgba')}`,
             borderColor: "rgba(0, 0, 0, 0.05)",
             duration: 0.5,
             ease: "power2.out",
         });
 
-        // Ambient glow - Widen on the sides
-        gsap.to(q(".product-glow"), {
-            opacity: 0.5,
-            scaleX: 1.6,
-            scaleY: 1.2,
-            duration: 0.8,
-            ease: "power2.out",
-        });
-
-        // Magnetic image scale
+        // Magnetic image scale - REDUCED ZOOM from 1.1 to 1.03
         gsap.to(q(".product-image"), {
-            scale: 1.1,
-            y: -5,
+            scale: 1.03, // Changed from 1.1 to 1.03 for subtle zoom
+            y: -3, // Reduced from -5 to -3
             duration: 0.6,
             ease: "power2.out",
         });
@@ -148,9 +151,9 @@ function ProductCard({ product, compact = false }) {
         const centerX = rect.width / 2;
         const centerY = rect.height / 2;
 
-        // Tilt Effect
-        const tiltX = (y - centerY) / 20;
-        const tiltY = (centerX - x) / 20;
+        // Tilt Effect - REDUCED intensity
+        const tiltX = (y - centerY) / 30; // Changed from /20 to /30 for less tilt
+        const tiltY = (centerX - x) / 30; // Changed from /20 to /30 for less tilt
 
         gsap.to(card, {
             rotateX: tiltX,
@@ -198,14 +201,6 @@ function ProductCard({ product, compact = false }) {
             rotateY: 0,
             boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
             borderColor: "rgba(0, 0, 0, 0.04)",
-            duration: 0.6,
-            ease: "power2.inOut",
-        });
-
-        gsap.to(q(".product-glow"), {
-            opacity: 0,
-            scaleX: 0.9,
-            scaleY: 0.9,
             duration: 0.6,
             ease: "power2.inOut",
         });
@@ -274,6 +269,26 @@ function ProductCard({ product, compact = false }) {
     const productTitle = product.title || product.name || "Unnamed Product";
     const productPrice = typeof product.price === 'number' ? product.price : parseFloat(product.price) || 0;
 
+    // Create a light version of the dominant color for the background (20% opacity)
+    const getBackgroundColor = () => {
+        if (!dominantColor || dominantColor === "rgba(0,0,0,0.05)") {
+            return "#f8fafc"; // Light gray fallback
+        }
+
+        // If it's rgb format, convert to rgba with 0.2 opacity (20%)
+        if (dominantColor.startsWith('rgb(')) {
+            return dominantColor.replace('rgb(', 'rgba(').replace(')', ', 0.2)');
+        }
+
+        // If it's already rgba, just adjust opacity to 0.2 (20%)
+        if (dominantColor.startsWith('rgba(')) {
+            return dominantColor.replace(/[^,]+(?=\))/, '0.2');
+        }
+
+        // If it's hex, we'd need to convert, but assuming getDominantColor returns rgb/rgba
+        return dominantColor;
+    };
+
     return (
         <div
             ref={cardRef}
@@ -281,15 +296,22 @@ function ProductCard({ product, compact = false }) {
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             className={`product-card group relative bg-white rounded-[1.5rem] overflow-hidden border border-slate-100/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] perspective-1000 ${compact ? 'max-w-sm' : ''}`}
+            style={{
+                transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
+            }}
         >
-            {/* Ambient Glow Background - YouTube "Cinematic" Style */}
-            <div
-                className="product-glow absolute inset-0 z-[-1] blur-[90px] opacity-0 pointer-events-none transition-colors duration-700"
-                style={{ backgroundColor: glowColor, width: '120%', left: '-10%' }}
-            />
-            {/* Image Section */}
+            {/* Image Section with Dominant Color Background */}
             <div className={`relative ${compact ? 'aspect-[3/4]' : 'aspect-[4/5]'} overflow-hidden group-hover:cursor-pointer bg-slate-50`}>
-                <Link href={`/product/${productId}`} className="absolute inset-0 z-0">
+                {/* Static Dominant Color Background - Only in image area */}
+                <div
+                    className="absolute inset-0 transition-opacity duration-500"
+                    style={{
+                        backgroundColor: getBackgroundColor(),
+                        opacity: isColorLoaded ? 1 : 0,
+                    }}
+                />
+
+                <Link href={`/product/${productId}`} className="absolute inset-0 z-10 flex items-center justify-center p-4">
                     <motion.div
                         key={currentImgIndex}
                         initial={{ opacity: 0 }}
@@ -301,7 +323,7 @@ function ProductCard({ product, compact = false }) {
                             src={images[currentImgIndex]}
                             alt={productTitle}
                             fill
-                            className="product-image object-cover"
+                            className="product-image object-contain" // Using object-contain to prevent cutting
                             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
                             priority={currentImgIndex === 0}
                             unoptimized={true}
@@ -310,11 +332,11 @@ function ProductCard({ product, compact = false }) {
                 </Link>
 
                 {/* Subtle Overlay */}
-                <div className="image-overlay absolute inset-0 bg-black/5 opacity-0 pointer-events-none" />
+                <div className="image-overlay absolute inset-0 bg-black/5 opacity-0 pointer-events-none z-20" />
 
                 {/* Image Dots - Slider Controls */}
                 {images.length > 1 && (
-                    <div className="image-dots absolute top-1/2 -translate-y-1/2 left-3 flex flex-col gap-1.5 z-20 opacity-0 translate-x-[-10px]">
+                    <div className="image-dots absolute top-1/2 -translate-y-1/2 left-3 flex flex-col gap-1.5 z-30 opacity-0 translate-x-[-10px]">
                         {images.map((_, idx) => (
                             <button
                                 key={idx}
@@ -327,7 +349,7 @@ function ProductCard({ product, compact = false }) {
                                     e.stopPropagation();
                                     setCurrentImgIndex(idx);
                                 }}
-                                className={`size-1.5 rounded-full transition-shadow duration-200 ${currentImgIndex === idx
+                                className={`size-1.5 rounded-full transition-all duration-200 ${currentImgIndex === idx
                                     ? "bg-primary scale-150 shadow-[0_0_8px_var(--primary)]"
                                     : "bg-slate-300 hover:bg-slate-400"
                                     }`}
@@ -338,13 +360,13 @@ function ProductCard({ product, compact = false }) {
                 )}
 
                 {/* Wishlist Button - Floating & Light Glass */}
-                <button className="wishlist-btn absolute top-4 right-4 z-20 flex items-center justify-center size-9 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-400 opacity-0 translate-x-10 scale-75 hover:bg-white hover:text-red-500 shadow-sm">
+                <button className="wishlist-btn absolute top-4 right-4 z-30 flex items-center justify-center size-9 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-400 opacity-0 translate-x-10 scale-75 hover:bg-white hover:text-red-500 shadow-sm">
                     <Heart className="size-4" />
                 </button>
 
                 {/* Badges */}
                 {product.isNew && (
-                    <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                    <div className="absolute top-4 left-4 z-30 pointer-events-none">
                         <span className="px-3 py-1 rounded-full bg-white/90 text-primary text-[9px] font-bold uppercase tracking-widest shadow-sm border border-slate-100/50 backdrop-blur-sm">
                             New Arrival
                         </span>
@@ -352,7 +374,7 @@ function ProductCard({ product, compact = false }) {
                 )}
 
                 {/* Quick Add Button - Clean Glass */}
-                <div className="quick-add-container absolute bottom-4 inset-x-4 z-20 translate-y-10 opacity-0">
+                <div className="quick-add-container absolute bottom-4 inset-x-4 z-30 translate-y-10 opacity-0">
                     <Button
                         onClick={handleAddToCart}
                         className={`w-full h-11 rounded-xl shadow-lg backdrop-blur-xl ${isAdded
@@ -373,9 +395,9 @@ function ProductCard({ product, compact = false }) {
                 </div>
             </div>
 
-            {/* Info Section */}
+            {/* Info Section - White Background */}
             <Link href={`/product/${productId}`}>
-                <div className={`${compact ? 'p-3 space-y-1.5' : 'p-5 space-y-2'}`}>
+                <div className={`relative bg-white ${compact ? 'p-3 space-y-1.5' : 'p-5 space-y-2'}`}>
                     <div className="space-y-0.5">
                         <div className="flex items-center justify-between">
                             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -402,7 +424,6 @@ function ProductCard({ product, compact = false }) {
         </div>
     );
 }
-
 
 // ProductCardSkeleton Component
 export function ProductCardSkeleton() {

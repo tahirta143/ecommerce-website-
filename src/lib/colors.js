@@ -41,7 +41,7 @@ export async function getDominantColor(imageUrl) {
                 g = Math.min(255, Math.floor(g * factor));
                 b = Math.min(255, Math.floor(b * factor));
 
-                resolve(`rgba(${r}, ${g}, ${b}, 0.5)`);
+                resolve(`rgba(${r}, ${g}, ${b}, 0.9)`);
             } catch (error) {
                 console.warn("Could not extract dominant color:", error);
                 resolve('rgba(0,0,0,0.1)');
